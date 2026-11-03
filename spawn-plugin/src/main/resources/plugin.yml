@@ -1,5 +1,6 @@
 name: SpawnMobs
 version: 1.0.0
+api-version: '26.2'
 main: net.lstonstudios.spawn.SpawnMobsPlugin
 author: LstonStudios
 description: Spawn many entities in an area with /spawn.

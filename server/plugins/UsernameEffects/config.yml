@@ -13,5 +13,9 @@ players:
     suffix: ''
   60b419bf-4b57-3cde-b743-a5f8afe75b99:
     name: O_oxer
-    prefix: '#1 §7'
+    prefix: '#1 §1'
+    suffix: ''
+  8ed5b06f-312b-3901-ab65-27bb61248d6c:
+    name: Dinoest
+    prefix: §4[PRO]§a
     suffix: ''

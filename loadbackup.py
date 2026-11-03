@@ -95,7 +95,12 @@ def configured_world_name():
 def find_world(extracted, preferred_name):
     candidates = []
     for directory, subdirectories, filenames in os.walk(extracted):
-        if "level.dat" in filenames and "region" in subdirectories:
+        modern_overworld_region = (
+            Path(directory) / "dimensions/minecraft/overworld/region"
+        )
+        if "level.dat" in filenames and (
+            "region" in subdirectories or modern_overworld_region.is_dir()
+        ):
             candidates.append(Path(directory))
 
     preferred = [path for path in candidates if path.name == preferred_name]
@@ -104,7 +109,9 @@ def find_world(extracted, preferred_name):
     if len(candidates) == 1:
         return candidates[0]
     if not candidates:
-        raise ValueError("The archive does not contain a world with level.dat and region/.")
+        raise ValueError(
+            "The archive does not contain a world with level.dat and Overworld region data."
+        )
 
     names = ", ".join(str(path.relative_to(extracted)) for path in candidates)
     raise ValueError(f"The archive contains multiple worlds; unable to choose safely: {names}")
@@ -133,13 +140,16 @@ def running_server_detected():
 
 def choose_archive():
     archives = sorted(
-        path
-        for path in BACKUPS.iterdir()
-        if path.is_file()
-        and (
-            zipfile.is_zipfile(path)
-            or tarfile.is_tarfile(path)
-        )
+        (
+            path
+            for path in BACKUPS.iterdir()
+            if path.is_file()
+            and (
+                zipfile.is_zipfile(path)
+                or tarfile.is_tarfile(path)
+            )
+        ),
+        key=lambda path: (-path.stat().st_mtime_ns, path.name),
     ) if BACKUPS.is_dir() else []
     if not archives:
         raise ValueError(

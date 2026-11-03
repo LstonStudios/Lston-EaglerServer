@@ -1,24 +1,27 @@
 #!/usr/bin/env bash
 
 if [ "$#" -gt 1 ]; then
-  echo "Usage: startserver [1|2]" >&2
+  echo "Usage: startserver [1|2|3]" >&2
   exit 1
 fi
 
 case "${1:-}" in
   1)
     cd /workspaces/EaglerServer-1.12/bungee || exit 1
-    exec sudo java -Deaglerxvelocity.stfu=true -jar bungee.jar
+    exec sudo java -jar bungee.jar
+    ;;
+  3)
+    exec node /workspaces/EaglerServer-1.12/bin/web-gateway.js
     ;;
   2)
     cd /workspaces/EaglerServer-1.12/server || exit 1
-    exec sudo java -jar server.jar
+    exec sudo java -Xmx2G -jar server.jar nogui
     ;;
   "")
     ;;
   *)
     echo "Unknown server target: $1" >&2
-    echo "Usage: startserver [1|2]" >&2
+    echo "Usage: startserver [1|2|3]" >&2
     exit 1
     ;;
 esac
@@ -39,6 +42,7 @@ cleanup() {
     printf 'stop\n' >&3
     wait "$server_pid" || true
   fi
+  kill "$gateway_pid" 2>/dev/null
   exec 3>&-
   rm -f "$console_pipe"
   rmdir "$console_dir"
@@ -49,8 +53,26 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 cd /workspaces/EaglerServer-1.12/server || exit 1
-sudo java -jar server.jar <"$console_pipe" &
+sudo java -Xmx2G -jar server.jar nogui <"$console_pipe" &
 server_pid=$!
 
+gateway_pid=
+
+# Players can only join once the backend is up, so hold the gateway and proxy
+# back until it accepts connections (a join before that gets "Unable to connect
+# you to lobby").
+echo "Waiting for the backend server to finish starting..."
+until (exec 4<>/dev/tcp/127.0.0.1/25566) 2>/dev/null; do
+  if ! kill -0 "$server_pid" 2>/dev/null; then
+    echo "The backend server stopped during startup; check server/logs/latest.log." >&2
+    exit 1
+  fi
+  sleep 2
+done
+echo "Backend is ready, starting the proxy and web gateway."
+
+node /workspaces/EaglerServer-1.12/bin/web-gateway.js &
+gateway_pid=$!
+
 cd /workspaces/EaglerServer-1.12/bungee || exit 1
-sudo java -Deaglerxvelocity.stfu=true -jar bungee.jar
+sudo java -jar bungee.jar

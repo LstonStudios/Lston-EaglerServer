@@ -1,12 +1,13 @@
 name: CustomWeapons
 version: 1.0.0
+api-version: '26.2'
 main: net.lstonstudios.customweapons.CustomWeaponsPlugin
 author: LstonStudios
-description: Adds the Mace and the Spear.
+description: Adds the Wind Burst.
 commands:
   weapon:
-    description: Give the Mace, Spear or Wind Bursts.
-    usage: /weapon <player|@a|@s|@p> <mace|spear|wind|all> [amount]
+    description: Give Wind Bursts.
+    usage: /weapon <player|@a|@s|@p> <wind|all> [amount]
     permission: customweapons.admin
 permissions:
   customweapons.admin:

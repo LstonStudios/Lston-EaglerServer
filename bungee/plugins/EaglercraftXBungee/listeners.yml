@@ -24,6 +24,7 @@ listener_01:
     root: '../../../web'
     page_404_not_found: 'default'
     page_index_name:
+    - 'EaglerCraft-26.2.html'
     - 'index.html'
     - 'index.htm'
   ratelimit:

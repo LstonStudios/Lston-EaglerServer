@@ -1,7 +1,6 @@
 package net.lstonstudios.money;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +26,9 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.block.ShulkerBox;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
-/** /shop <1-5>: shulker box kits. The pricier the kit, the better the contents. */
+/** /kit <1-5>: shulker box kits. The pricier the kit, the better the contents. */
 final class KitShop implements Listener {
     static final int PAGES = 5;
     private static final int[] KIT_SLOTS = {10, 12, 14, 16};
@@ -40,7 +38,9 @@ final class KitShop implements Listener {
     private static final int BACK = 31;
     private static final String[] PAGE_NAMES = {"Starter", "Iron & Specialty", "Utility", "Diamond", "Legendary"};
     // Stained glass pane colors per page.
-    private static final short[] PAGE_PANES = {5, 8, 11, 3, 2};
+    private static final Material[] PAGE_PANES = {Material.LIME_STAINED_GLASS_PANE,
+            Material.LIGHT_GRAY_STAINED_GLASS_PANE, Material.BLUE_STAINED_GLASS_PANE,
+            Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.MAGENTA_STAINED_GLASS_PANE};
 
     private final MoneyPlugin plugin;
     private final List<List<Kit>> pages = new ArrayList<>();
@@ -103,11 +103,15 @@ final class KitShop implements Listener {
                     int stored = 0;
                     for (ItemStack it : state.getInventory().getContents()) {
                         if (it != null) {
-                            stored++;
+                            stored += it.getAmount();
                         }
                     }
-                    if (stored != kit.items.size()) {
-                        plugin.getLogger().warning("Kit " + kit.name + " does not fit its shulker box.");
+                    int expected = 0;
+                    for (ItemStack it : kit.items) {
+                        expected += it.getAmount();
+                    }
+                    if (stored != expected) {
+                        plugin.getLogger().warning("Kit " + kit.name + " does not fit its shulker box (" + stored + "/" + expected + ").");
                     }
                 } catch (RuntimeException ex) {
                     plugin.getLogger().warning("Kit " + kit.name + " is broken: " + ex);
@@ -127,57 +131,12 @@ final class KitShop implements Listener {
         return new ItemStack(m, 1);
     }
 
-    private static ItemStack data(Material m, int amount, int data) {
-        return new ItemStack(m, amount, (short) data);
-    }
-
     /** Item with enchantments given as alternating enchantment, level. */
     private static ItemStack e(Material m, Object... enchants) {
         ItemStack s = new ItemStack(m);
         for (int k = 0; k + 1 < enchants.length; k += 2) {
             s.addUnsafeEnchantment((Enchantment) enchants[k], (Integer) enchants[k + 1]);
         }
-        return s;
-    }
-
-    // Must match the items built by the CustomWeapons plugin (same material and hidden lore marker).
-    private static ItemStack weapon(Material m, String name, ChatColor color, String marker, String[] lore,
-            Object... enchants) {
-        ItemStack s = e(m, enchants);
-        ItemMeta meta = s.getItemMeta();
-        meta.setDisplayName(color + "" + ChatColor.BOLD + name);
-        List<String> l = new ArrayList<>();
-        for (String line : lore) {
-            l.add(ChatColor.GRAY + line);
-        }
-        l.add(ChatColor.BLACK + marker);
-        meta.setLore(l);
-        meta.setUnbreakable(true);
-        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
-        s.setItemMeta(meta);
-        return s;
-    }
-
-    private static ItemStack mace(Object... enchants) {
-        return weapon(Material.GOLD_SPADE, "Mace", ChatColor.DARK_GRAY, "CustomWeapon:mace",
-                new String[] {"Fall onto your target for smash damage.", "The farther you fall, the harder it hits",
-                        "and you take no fall damage."}, enchants);
-    }
-
-    private static ItemStack spear(Object... enchants) {
-        return weapon(Material.GOLD_PICKAXE, "Spear", ChatColor.AQUA, "CustomWeapon:spear",
-                new String[] {"Left-click: jab up to 4.5 blocks.", "Hold right-click, release to dash (3s cooldown)",
-                        "and skewer all. Efficiency = longer dash."}, enchants);
-    }
-
-    private static ItemStack wind(int amount) {
-        ItemStack s = new ItemStack(Material.PRISMARINE_CRYSTALS, amount);
-        ItemMeta meta = s.getItemMeta();
-        meta.setDisplayName(ChatColor.WHITE + "" + ChatColor.BOLD + "Wind Burst");
-        meta.setLore(Arrays.asList(ChatColor.GRAY + "Right-click: launch yourself skyward,",
-                ChatColor.GRAY + "then smash down with the Mace.",
-                ChatColor.GRAY + "Consumed on use. No fall damage for 4s.", ChatColor.BLACK + "CustomWeapon:wind"));
-        s.setItemMeta(meta);
         return s;
     }
 
@@ -191,16 +150,16 @@ final class KitShop implements Listener {
         return s;
     }
 
-    private static ItemStack potion(Material kind, PotionType type, boolean extended, boolean upgraded, int amount) {
+    private static ItemStack potion(Material kind, PotionType type, int amount) {
         ItemStack s = new ItemStack(kind, amount);
         PotionMeta meta = (PotionMeta) s.getItemMeta();
-        meta.setBasePotionData(new PotionData(type, extended, upgraded));
+        meta.setBasePotionType(type);
         s.setItemMeta(meta);
         return s;
     }
 
     private static ItemStack rocket(int amount, int power) {
-        ItemStack s = new ItemStack(Material.FIREWORK, amount);
+        ItemStack s = new ItemStack(Material.FIREWORK_ROCKET, amount);
         FireworkMeta meta = (FireworkMeta) s.getItemMeta();
         meta.setPower(power);
         s.setItemMeta(meta);
@@ -210,13 +169,13 @@ final class KitShop implements Listener {
     // --------------------------------------------------------------- catalog
 
     private void buildKits() {
-        Enchantment prot = Enchantment.PROTECTION_ENVIRONMENTAL;
-        Enchantment unb = Enchantment.DURABILITY;
+        Enchantment prot = Enchantment.PROTECTION;
+        Enchantment unb = Enchantment.UNBREAKING;
         Enchantment mend = Enchantment.MENDING;
-        Enchantment sharp = Enchantment.DAMAGE_ALL;
-        Enchantment eff = Enchantment.DIG_SPEED;
-        Enchantment fort = Enchantment.LOOT_BONUS_BLOCKS;
-        Enchantment power = Enchantment.ARROW_DAMAGE;
+        Enchantment sharp = Enchantment.SHARPNESS;
+        Enchantment eff = Enchantment.EFFICIENCY;
+        Enchantment fort = Enchantment.FORTUNE;
+        Enchantment power = Enchantment.POWER;
 
         // ---- Page 1: Starter (cheap) ----
         pages.get(0).add(new Kit("Food Pack", ChatColor.GREEN, Material.LIME_SHULKER_BOX, 150,
@@ -225,34 +184,35 @@ final class KitShop implements Listener {
                         i(Material.COOKED_CHICKEN, 8), i(Material.APPLE, 8), i(Material.MELON, 16)));
         pages.get(0).add(new Kit("Builder Starter", ChatColor.YELLOW, Material.YELLOW_SHULKER_BOX, 250,
                 "Everything for your first house.")
-                .add(i(Material.WOOD, 64), i(Material.WOOD, 64), i(Material.COBBLESTONE, 64),
-                        i(Material.GLASS, 32), i(Material.TORCH, 32), i(Material.WOOD_DOOR, 4),
-                        i(Material.LADDER, 16), i(Material.CHEST, 4), i(Material.WOOD_AXE), i(Material.WOOD_SPADE)));
+                .add(i(Material.OAK_PLANKS, 64), i(Material.OAK_PLANKS, 64), i(Material.COBBLESTONE, 64),
+                        i(Material.GLASS, 32), i(Material.TORCH, 32), i(Material.OAK_DOOR, 4),
+                        i(Material.LADDER, 16), i(Material.CHEST, 4), i(Material.WOODEN_AXE), i(Material.WOODEN_SHOVEL)));
         pages.get(0).add(new Kit("Leather Scout", ChatColor.GOLD, Material.BROWN_SHULKER_BOX, 350,
                 "Light armor and a bow.")
                 .add(i(Material.LEATHER_HELMET), i(Material.LEATHER_CHESTPLATE), i(Material.LEATHER_LEGGINGS),
-                        i(Material.LEATHER_BOOTS), i(Material.WOOD_SWORD), i(Material.BOW), i(Material.ARROW, 32),
+                        i(Material.LEATHER_BOOTS), i(Material.WOODEN_SWORD), i(Material.BOW), i(Material.ARROW, 32),
                         i(Material.COOKED_BEEF, 8), i(Material.TORCH, 16)));
-        pages.get(0).add(new Kit("Stone Warrior", ChatColor.GRAY, Material.SILVER_SHULKER_BOX, 600,
-                "Stone tools, chainmail and a shield.")
+        pages.get(0).add(new Kit("Stone Warrior", ChatColor.GRAY, Material.LIGHT_GRAY_SHULKER_BOX, 600,
+                "Stone tools, a stone spear, chainmail and a shield.")
                 .add(i(Material.STONE_SWORD), i(Material.STONE_PICKAXE), i(Material.STONE_AXE),
-                        i(Material.STONE_SPADE), i(Material.CHAINMAIL_HELMET), i(Material.CHAINMAIL_CHESTPLATE),
+                        i(Material.STONE_SHOVEL), i(Material.STONE_SPEAR), i(Material.CHAINMAIL_HELMET), i(Material.CHAINMAIL_CHESTPLATE),
                         i(Material.CHAINMAIL_LEGGINGS), i(Material.CHAINMAIL_BOOTS), i(Material.SHIELD),
                         i(Material.COOKED_BEEF, 16), i(Material.TORCH, 32), i(Material.COAL, 16)));
 
         // ---- Page 2: Iron & specialty ----
         pages.get(1).add(new Kit("Iron Warrior", ChatColor.WHITE, Material.WHITE_SHULKER_BOX, 1200,
-                "Full iron armor with Protection I and a sharp blade.")
+                "Protection I iron armor with an iron spear and sharp blade.")
                 .add(e(Material.IRON_HELMET, prot, 1), e(Material.IRON_CHESTPLATE, prot, 1),
                         e(Material.IRON_LEGGINGS, prot, 1), e(Material.IRON_BOOTS, prot, 1),
-                        e(Material.IRON_SWORD, sharp, 1), i(Material.SHIELD), i(Material.BOW),
+                        e(Material.IRON_SWORD, sharp, 1), e(Material.IRON_SPEAR, sharp, 1, Enchantment.LUNGE, 1),
+                        i(Material.SHIELD), i(Material.BOW),
                         i(Material.ARROW, 48), i(Material.COOKED_BEEF, 24), i(Material.GOLDEN_APPLE, 2)));
         pages.get(1).add(new Kit("Iron Miner", ChatColor.AQUA, Material.CYAN_SHULKER_BOX, 1400,
                 "Efficient iron tools and supplies for a deep dive.")
                 .add(e(Material.IRON_PICKAXE, eff, 2, unb, 1), e(Material.IRON_AXE, eff, 2),
-                        e(Material.IRON_SPADE, eff, 2), i(Material.IRON_SWORD), i(Material.TORCH, 64),
+                        e(Material.IRON_SHOVEL, eff, 2), i(Material.IRON_SWORD), i(Material.TORCH, 64),
                         i(Material.COOKED_BEEF, 32), i(Material.WATER_BUCKET), i(Material.COBBLESTONE, 64),
-                        i(Material.RAILS, 32), i(Material.MINECART), i(Material.COAL, 32)));
+                        i(Material.RAIL, 32), i(Material.MINECART), i(Material.COAL, 32)));
         pages.get(1).add(new Kit("Archer Pack", ChatColor.DARK_GREEN, Material.GREEN_SHULKER_BOX, 1500,
                 "A Power II bow and a mountain of arrows.")
                 .add(e(Material.BOW, power, 2, unb, 1), i(Material.ARROW, 64), i(Material.ARROW, 64),
@@ -260,135 +220,136 @@ final class KitShop implements Listener {
                         i(Material.IRON_LEGGINGS), i(Material.IRON_BOOTS), i(Material.COOKED_BEEF, 16)));
         pages.get(1).add(new Kit("Farmer's Bounty", ChatColor.DARK_AQUA, Material.BLUE_SHULKER_BOX, 1000,
                 "Seeds, tools and animals' favorite snacks.")
-                .add(i(Material.IRON_HOE), i(Material.WATER_BUCKET), i(Material.SEEDS, 32),
-                        i(Material.CARROT_ITEM, 32), i(Material.POTATO_ITEM, 32), i(Material.BEETROOT_SEEDS, 16),
-                        i(Material.PUMPKIN_SEEDS, 16), i(Material.MELON_SEEDS, 16), data(Material.INK_SACK, 64, 15),
-                        i(Material.SADDLE), i(Material.LEASH, 4), i(Material.WHEAT, 32), i(Material.SHEARS)));
+                .add(i(Material.IRON_HOE), i(Material.WATER_BUCKET), i(Material.WHEAT_SEEDS, 32),
+                        i(Material.CARROT, 32), i(Material.POTATO, 32), i(Material.BEETROOT_SEEDS, 16),
+                        i(Material.PUMPKIN_SEEDS, 16), i(Material.MELON_SEEDS, 16), i(Material.BONE_MEAL, 64),
+                        i(Material.SADDLE), i(Material.LEAD, 4), i(Material.WHEAT, 32), i(Material.SHEARS)));
 
         // ---- Page 3: Utility ----
         pages.get(2).add(new Kit("Redstone Engineer", ChatColor.RED, Material.RED_SHULKER_BOX, 2000,
                 "Pistons, hoppers and redstone for any contraption.")
-                .add(i(Material.REDSTONE, 64), i(Material.REDSTONE_BLOCK, 8), i(Material.PISTON_BASE, 8),
-                        i(Material.PISTON_STICKY_BASE, 8), i(Material.HOPPER, 8), i(Material.DISPENSER, 4),
-                        i(Material.DROPPER, 4), i(Material.OBSERVER, 8), i(Material.DIODE, 8),
-                        i(Material.REDSTONE_COMPARATOR, 4), i(Material.LEVER, 8), i(Material.STONE_BUTTON, 8),
+                .add(i(Material.REDSTONE, 64), i(Material.REDSTONE_BLOCK, 8), i(Material.PISTON, 8),
+                        i(Material.STICKY_PISTON, 8), i(Material.HOPPER, 8), i(Material.DISPENSER, 4),
+                        i(Material.DROPPER, 4), i(Material.OBSERVER, 8), i(Material.REPEATER, 8),
+                        i(Material.COMPARATOR, 4), i(Material.LEVER, 8), i(Material.STONE_BUTTON, 8),
                         i(Material.SLIME_BLOCK, 8), i(Material.DAYLIGHT_DETECTOR, 2), i(Material.TNT, 16)));
         pages.get(2).add(new Kit("Potion Pack", ChatColor.LIGHT_PURPLE, Material.MAGENTA_SHULKER_BOX, 2400,
                 "Splash and drinkable potions for any fight.")
-                .add(potion(Material.POTION, PotionType.STRENGTH, false, false, 1),
-                        potion(Material.POTION, PotionType.SPEED, false, false, 1),
-                        potion(Material.POTION, PotionType.FIRE_RESISTANCE, true, false, 1),
-                        potion(Material.POTION, PotionType.NIGHT_VISION, true, false, 1),
-                        potion(Material.POTION, PotionType.WATER_BREATHING, true, false, 1),
-                        potion(Material.POTION, PotionType.REGEN, false, false, 1),
-                        potion(Material.SPLASH_POTION, PotionType.INSTANT_HEAL, false, true, 4),
-                        potion(Material.SPLASH_POTION, PotionType.POISON, false, false, 2),
-                        potion(Material.SPLASH_POTION, PotionType.SLOWNESS, false, false, 2),
-                        potion(Material.SPLASH_POTION, PotionType.WEAKNESS, false, false, 2),
+                .add(potion(Material.POTION, PotionType.STRENGTH, 1),
+                        potion(Material.POTION, PotionType.SWIFTNESS, 1),
+                        potion(Material.POTION, PotionType.LONG_FIRE_RESISTANCE, 1),
+                        potion(Material.POTION, PotionType.LONG_NIGHT_VISION, 1),
+                        potion(Material.POTION, PotionType.LONG_WATER_BREATHING, 1),
+                        potion(Material.POTION, PotionType.REGENERATION, 1),
+                        potion(Material.SPLASH_POTION, PotionType.STRONG_HEALING, 4),
+                        potion(Material.SPLASH_POTION, PotionType.POISON, 2),
+                        potion(Material.SPLASH_POTION, PotionType.SLOWNESS, 2),
+                        potion(Material.SPLASH_POTION, PotionType.WEAKNESS, 2),
                         i(Material.GOLDEN_CARROT, 16), i(Material.GOLDEN_APPLE, 3)));
         pages.get(2).add(new Kit("Explorer's Chest", ChatColor.DARK_PURPLE, Material.PURPLE_SHULKER_BOX, 3000,
                 "Boats, ender pearls and a trusty steed.")
-                .add(i(Material.BOAT, 2), i(Material.SADDLE), i(Material.DIAMOND_BARDING),
-                        i(Material.ENDER_PEARL, 8), i(Material.COMPASS), i(Material.EMPTY_MAP, 4),
+                .add(i(Material.OAK_BOAT, 2), i(Material.SADDLE), i(Material.DIAMOND_HORSE_ARMOR),
+                        i(Material.ENDER_PEARL, 8), i(Material.COMPASS), i(Material.MAP, 4),
                         i(Material.NAME_TAG, 2), i(Material.WATER_BUCKET), i(Material.COOKED_BEEF, 32),
-                        i(Material.GOLDEN_CARROT, 32), i(Material.TORCH, 64), i(Material.BED, 2),
+                        i(Material.GOLDEN_CARROT, 32), i(Material.TORCH, 64), i(Material.RED_BED, 2),
                         i(Material.FISHING_ROD), i(Material.SHEARS), i(Material.FLINT_AND_STEEL)));
         pages.get(2).add(new Kit("Enchanter's Study", ChatColor.BLUE, Material.BLUE_SHULKER_BOX, 3800,
                 "Everything to enchant your own gear.")
-                .add(i(Material.ENCHANTMENT_TABLE), i(Material.BOOKSHELF, 15), i(Material.ANVIL),
-                        data(Material.INK_SACK, 64, 4), i(Material.EXP_BOTTLE, 64), i(Material.BOOK, 16),
+                .add(i(Material.ENCHANTING_TABLE), i(Material.BOOKSHELF, 15), i(Material.ANVIL),
+                        i(Material.LAPIS_LAZULI, 64), i(Material.EXPERIENCE_BOTTLE, 64), i(Material.BOOK, 16),
                         i(Material.OBSIDIAN, 8), i(Material.DIAMOND, 4),
                         book(unb, 3), book(eff, 3), book(sharp, 3), book(prot, 3)));
 
         // ---- Page 4: Diamond ----
         pages.get(3).add(new Kit("Diamond Warrior", ChatColor.AQUA, Material.LIGHT_BLUE_SHULKER_BOX, 6000,
-                "Protection III diamond armor and a Sharpness III sword.")
+                "Protection III diamond armor, a Sharpness III sword and a Lunge II spear.")
                 .add(e(Material.DIAMOND_HELMET, prot, 3, unb, 2), e(Material.DIAMOND_CHESTPLATE, prot, 3, unb, 2),
                         e(Material.DIAMOND_LEGGINGS, prot, 3, unb, 2), e(Material.DIAMOND_BOOTS, prot, 3, unb, 2),
                         e(Material.DIAMOND_SWORD, sharp, 3, unb, 2, Enchantment.FIRE_ASPECT, 1),
+                        e(Material.DIAMOND_SPEAR, sharp, 3, Enchantment.LUNGE, 2, unb, 2),
                         i(Material.SHIELD), e(Material.BOW, power, 3), i(Material.ARROW, 64),
                         i(Material.GOLDEN_APPLE, 6), i(Material.COOKED_BEEF, 32), i(Material.ENDER_PEARL, 8)));
         pages.get(3).add(new Kit("Diamond Miner", ChatColor.GREEN, Material.GREEN_SHULKER_BOX, 5500,
                 "Efficiency IV tools with Fortune III on the pick.")
                 .add(e(Material.DIAMOND_PICKAXE, eff, 4, fort, 3, unb, 3), e(Material.DIAMOND_AXE, eff, 4, unb, 3),
-                        e(Material.DIAMOND_SPADE, eff, 4, unb, 3),
+                        e(Material.DIAMOND_SHOVEL, eff, 4, unb, 3),
                         e(Material.DIAMOND_PICKAXE, eff, 4, Enchantment.SILK_TOUCH, 1, unb, 3),
-                        e(Material.DIAMOND_HELMET, Enchantment.WATER_WORKER, 1, unb, 2),
-                        potion(Material.POTION, PotionType.NIGHT_VISION, true, false, 2),
+                        e(Material.DIAMOND_HELMET, Enchantment.AQUA_AFFINITY, 1, unb, 2),
+                        potion(Material.POTION, PotionType.LONG_NIGHT_VISION, 2),
                         i(Material.TORCH, 64), i(Material.COOKED_BEEF, 32), i(Material.WATER_BUCKET),
                         i(Material.LAVA_BUCKET)));
         pages.get(3).add(new Kit("Diamond Sniper", ChatColor.DARK_GREEN, Material.GRAY_SHULKER_BOX, 5500,
                 "A Power IV bow with Punch and Unbreaking.")
-                .add(e(Material.BOW, power, 4, Enchantment.ARROW_KNOCKBACK, 1, unb, 3),
-                        e(Material.BOW, power, 3, Enchantment.ARROW_FIRE, 1),
+                .add(e(Material.BOW, power, 4, Enchantment.PUNCH, 1, unb, 3),
+                        e(Material.BOW, power, 3, Enchantment.FLAME, 1),
                         i(Material.ARROW, 64), i(Material.ARROW, 64), i(Material.ARROW, 64),
                         i(Material.SPECTRAL_ARROW, 64),
                         e(Material.DIAMOND_HELMET, prot, 2), e(Material.DIAMOND_CHESTPLATE, prot, 2),
-                        e(Material.DIAMOND_LEGGINGS, prot, 2), e(Material.DIAMOND_BOOTS, prot, 2, Enchantment.PROTECTION_FALL, 3),
+                        e(Material.DIAMOND_LEGGINGS, prot, 2), e(Material.DIAMOND_BOOTS, prot, 2, Enchantment.FEATHER_FALLING, 3),
                         i(Material.GOLDEN_APPLE, 4)));
         pages.get(3).add(new Kit("Diamond Feast", ChatColor.GOLD, Material.ORANGE_SHULKER_BOX, 4000,
                 "Premium food that heals and fills.")
                 .add(i(Material.COOKED_BEEF, 64), i(Material.GOLDEN_CARROT, 64), i(Material.GOLDEN_APPLE, 10),
                         i(Material.PUMPKIN_PIE, 32), i(Material.CAKE, 2), i(Material.COOKED_CHICKEN, 32),
-                        i(Material.GRILLED_PORK, 32), i(Material.COOKED_FISH, 32),
-                        potion(Material.POTION, PotionType.REGEN, true, false, 2)));
+                        i(Material.COOKED_PORKCHOP, 32), i(Material.COOKED_COD, 32),
+                        potion(Material.POTION, PotionType.LONG_REGENERATION, 2)));
 
         // ---- Page 5: Legendary ----
         pages.get(4).add(new Kit("Legendary Warrior", ChatColor.RED, Material.RED_SHULKER_BOX, 18000,
-                "Maxed mending armor, a god-tier blade, mace (with 64 Wind Bursts) and spear.")
-                .add(e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.WATER_WORKER, 1, Enchantment.OXYGEN, 3),
+                "Maxed mending armor, a god-tier blade, a Wind Burst mace and netherite spear.")
+                .add(e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.AQUA_AFFINITY, 1, Enchantment.RESPIRATION, 3),
                         e(Material.DIAMOND_CHESTPLATE, prot, 4, unb, 3, mend, 1, Enchantment.THORNS, 2),
                         e(Material.DIAMOND_LEGGINGS, prot, 4, unb, 3, mend, 1),
-                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.PROTECTION_FALL, 4,
+                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.FEATHER_FALLING, 4,
                                 Enchantment.DEPTH_STRIDER, 3),
                         e(Material.DIAMOND_SWORD, sharp, 5, unb, 3, mend, 1, Enchantment.FIRE_ASPECT, 2,
-                                Enchantment.LOOT_BONUS_MOBS, 3, Enchantment.SWEEPING_EDGE, 3),
+                                Enchantment.LOOTING, 3, Enchantment.SWEEPING_EDGE, 3),
+                        e(Material.MACE, unb, 3, mend, 1, Enchantment.WIND_BURST, 3),
+                        e(Material.NETHERITE_SPEAR, sharp, 5, unb, 3, mend, 1, Enchantment.LUNGE, 3),
                         e(Material.SHIELD, unb, 3, mend, 1),
-                        e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.ARROW_KNOCKBACK, 2),
-                        mace(sharp, 5, unb, 3, mend, 1, Enchantment.FIRE_ASPECT, 2), wind(64),
-                        spear(sharp, 5, unb, 3, Enchantment.FIRE_ASPECT, 2),
-                        i(Material.ARROW, 64), data(Material.GOLDEN_APPLE, 8, 1), i(Material.TOTEM, 2),
+                        e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.PUNCH, 2),
+                        i(Material.ARROW, 64), i(Material.ENCHANTED_GOLDEN_APPLE, 8), i(Material.TOTEM_OF_UNDYING, 2),
                         i(Material.ENDER_PEARL, 16), i(Material.COOKED_BEEF, 64)));
         pages.get(4).add(new Kit("Legendary Miner", ChatColor.GREEN, Material.LIME_SHULKER_BOX, 15000,
                 "Efficiency V tools with Fortune III and Mending.")
                 .add(e(Material.DIAMOND_PICKAXE, eff, 5, fort, 3, unb, 3, mend, 1),
                         e(Material.DIAMOND_AXE, eff, 5, unb, 3, mend, 1, fort, 3),
-                        e(Material.DIAMOND_SPADE, eff, 5, unb, 3, mend, 1),
+                        e(Material.DIAMOND_SHOVEL, eff, 5, unb, 3, mend, 1),
                         e(Material.DIAMOND_PICKAXE, eff, 5, Enchantment.SILK_TOUCH, 1, unb, 3, mend, 1),
-                        e(Material.DIAMOND_HELMET, prot, 3, unb, 3, mend, 1, Enchantment.WATER_WORKER, 1),
-                        potion(Material.POTION, PotionType.NIGHT_VISION, true, false, 3),
-                        i(Material.TORCH, 64), i(Material.COOKED_BEEF, 64), data(Material.GOLDEN_APPLE, 4, 1),
+                        e(Material.DIAMOND_HELMET, prot, 3, unb, 3, mend, 1, Enchantment.AQUA_AFFINITY, 1),
+                        potion(Material.POTION, PotionType.LONG_NIGHT_VISION, 3),
+                        i(Material.TORCH, 64), i(Material.COOKED_BEEF, 64), i(Material.ENCHANTED_GOLDEN_APPLE, 4),
                         i(Material.WATER_BUCKET), i(Material.LAVA_BUCKET), i(Material.TNT, 32),
                         i(Material.DIAMOND_BLOCK, 4)));
         pages.get(4).add(new Kit("Legendary Hunter", ChatColor.DARK_GREEN, Material.BLACK_SHULKER_BOX, 15000,
                 "Looting III, Power V and enchanted golden apples.")
-                .add(e(Material.DIAMOND_SWORD, sharp, 5, Enchantment.LOOT_BONUS_MOBS, 3, unb, 3, mend, 1,
+                .add(e(Material.DIAMOND_SWORD, sharp, 5, Enchantment.LOOTING, 3, unb, 3, mend, 1,
                         Enchantment.KNOCKBACK, 2),
-                        e(Material.BOW, power, 5, Enchantment.ARROW_INFINITE, 1, Enchantment.ARROW_FIRE, 1,
-                                Enchantment.ARROW_KNOCKBACK, 2),
+                        e(Material.BOW, power, 5, Enchantment.INFINITY, 1, Enchantment.FLAME, 1,
+                                Enchantment.PUNCH, 2),
                         i(Material.ARROW, 1), i(Material.SPECTRAL_ARROW, 64),
                         e(Material.DIAMOND_CHESTPLATE, prot, 4, unb, 3, mend, 1),
                         e(Material.DIAMOND_LEGGINGS, prot, 4, unb, 3, mend, 1),
-                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.PROTECTION_FALL, 4),
+                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.FEATHER_FALLING, 4),
                         e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1),
-                        data(Material.GOLDEN_APPLE, 6, 1), i(Material.TOTEM, 1),
-                        potion(Material.SPLASH_POTION, PotionType.INSTANT_HEAL, false, true, 6),
-                        potion(Material.POTION, PotionType.STRENGTH, false, true, 2)));
+                        i(Material.ENCHANTED_GOLDEN_APPLE, 6), i(Material.TOTEM_OF_UNDYING, 1),
+                        potion(Material.SPLASH_POTION, PotionType.STRONG_HEALING, 6),
+                        potion(Material.POTION, PotionType.STRONG_STRENGTH, 2)));
         pages.get(4).add(new Kit("Ultimate Survival", ChatColor.LIGHT_PURPLE, Material.PURPLE_SHULKER_BOX, 30000,
-                "The best of everything: elytra, totems, god gear, mace and spear.")
+                "The best of everything: elytra, totems, god gear, a Wind Burst mace and netherite spear.")
                 .add(e(Material.ELYTRA, unb, 3, mend, 1), rocket(64, 3),
-                        e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.WATER_WORKER, 1, Enchantment.OXYGEN, 3),
+                        e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.AQUA_AFFINITY, 1, Enchantment.RESPIRATION, 3),
                         e(Material.DIAMOND_CHESTPLATE, prot, 4, unb, 3, mend, 1),
                         e(Material.DIAMOND_LEGGINGS, prot, 4, unb, 3, mend, 1),
-                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.PROTECTION_FALL, 4),
+                        e(Material.DIAMOND_BOOTS, prot, 4, unb, 3, mend, 1, Enchantment.FEATHER_FALLING, 4),
                         e(Material.DIAMOND_SWORD, sharp, 5, unb, 3, mend, 1, Enchantment.FIRE_ASPECT, 2,
-                                Enchantment.LOOT_BONUS_MOBS, 3),
+                                Enchantment.LOOTING, 3),
                         e(Material.DIAMOND_PICKAXE, eff, 5, fort, 3, unb, 3, mend, 1),
-                        mace(sharp, 5, unb, 3, mend, 1, Enchantment.FIRE_ASPECT, 2), wind(64),
-                        spear(sharp, 5, unb, 3, Enchantment.FIRE_ASPECT, 2),
-                        e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.ARROW_INFINITE, 1),
-                        i(Material.ARROW, 1), data(Material.GOLDEN_APPLE, 16, 1), i(Material.TOTEM, 4),
-                        i(Material.ENDER_PEARL, 16), i(Material.COOKED_BEEF, 64), i(Material.EXP_BOTTLE, 64),
+                        e(Material.MACE, unb, 3, mend, 1, Enchantment.WIND_BURST, 3),
+                        e(Material.NETHERITE_SPEAR, sharp, 5, unb, 3, mend, 1, Enchantment.LUNGE, 3),
+                        e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.INFINITY, 1),
+                        i(Material.ARROW, 1), i(Material.ENCHANTED_GOLDEN_APPLE, 16), i(Material.TOTEM_OF_UNDYING, 4),
+                        i(Material.ENDER_PEARL, 16), i(Material.COOKED_BEEF, 64), i(Material.EXPERIENCE_BOTTLE, 64),
                         i(Material.DIAMOND_BLOCK, 8), i(Material.EMERALD_BLOCK, 4), i(Material.GOLD_BLOCK, 4)));
     }
 
@@ -415,19 +376,13 @@ final class KitShop implements Listener {
         sb.append(ChatColor.GRAY).append("- ").append(ChatColor.WHITE).append(stack.getAmount()).append("x ");
         if (stack.getType() == Material.ENCHANTED_BOOK) {
             sb.append("Enchanted Book");
-        } else if (stack.getType() == Material.INK_SACK) {
-            sb.append(stack.getDurability() == 15 ? "bone meal" : stack.getDurability() == 4 ? "lapis lazuli"
-                    : "dye");
-        } else if (stack.getType() == Material.GOLDEN_APPLE && stack.getDurability() == 1) {
-            sb.append("enchanted golden apple");
         } else {
             sb.append(stack.getType().name().toLowerCase().replace('_', ' '));
         }
         if (stack.getType() == Material.POTION || stack.getType() == Material.SPLASH_POTION) {
             PotionMeta pm = (PotionMeta) stack.getItemMeta();
-            PotionData pd = pm.getBasePotionData();
-            sb.append(ChatColor.AQUA).append(" (").append(pd.getType().name().toLowerCase().replace('_', ' '))
-                    .append(pd.isUpgraded() ? " II" : "").append(pd.isExtended() ? " long" : "").append(")");
+            sb.append(ChatColor.AQUA).append(" (")
+                    .append(pm.getBasePotionType().name().toLowerCase().replace('_', ' ')).append(")");
         }
         Map<Enchantment, Integer> enchants = stack.getType() == Material.ENCHANTED_BOOK
                 ? ((EnchantmentStorageMeta) stack.getItemMeta()).getStoredEnchants() : stack.getEnchantments();
@@ -463,8 +418,8 @@ final class KitShop implements Listener {
         return stack;
     }
 
-    private static ItemStack named(Material m, int data, String name, String... lore) {
-        ItemStack s = new ItemStack(m, 1, (short) data);
+    private static ItemStack named(Material m, String name, String... lore) {
+        ItemStack s = new ItemStack(m);
         ItemMeta meta = s.getItemMeta();
         meta.setDisplayName(name);
         List<String> l = new ArrayList<>();
@@ -491,7 +446,7 @@ final class KitShop implements Listener {
                 page = -1;
             }
             if (page < 1 || page > PAGES) {
-                sender.sendMessage(ChatColor.RED + "Usage: /shop <1-" + PAGES + ">");
+                sender.sendMessage(ChatColor.RED + "Usage: /kit <1-" + PAGES + ">");
                 return true;
             }
         }
@@ -502,7 +457,7 @@ final class KitShop implements Listener {
     void open(Player player, int page) {
         Inventory inv = Bukkit.createInventory(new KitHolder(page, null), 27,
                 ChatColor.DARK_GRAY + "Kit Shop: " + PAGE_NAMES[page - 1] + " (" + page + "/" + PAGES + ")");
-        ItemStack filler = named(Material.STAINED_GLASS_PANE, PAGE_PANES[page - 1], " ");
+        ItemStack filler = named(PAGE_PANES[page - 1], " ");
         for (int slot = 0; slot < 27; slot++) {
             inv.setItem(slot, filler);
         }
@@ -511,14 +466,14 @@ final class KitShop implements Listener {
             inv.setItem(KIT_SLOTS[k], display(kits.get(k)));
         }
         if (page > 1) {
-            inv.setItem(PREV, named(Material.ARROW, 0, ChatColor.YELLOW + "< Page " + (page - 1),
+            inv.setItem(PREV, named(Material.ARROW, ChatColor.YELLOW + "< Page " + (page - 1),
                     ChatColor.GRAY + PAGE_NAMES[page - 2]));
         }
         if (page < PAGES) {
-            inv.setItem(NEXT, named(Material.ARROW, 0, ChatColor.YELLOW + "Page " + (page + 1) + " >",
+            inv.setItem(NEXT, named(Material.ARROW, ChatColor.YELLOW + "Page " + (page + 1) + " >",
                     ChatColor.GRAY + PAGE_NAMES[page]));
         }
-        inv.setItem(INFO, named(Material.GOLD_INGOT, 0, ChatColor.GOLD + "Your balance: "
+        inv.setItem(INFO, named(Material.GOLD_INGOT, ChatColor.GOLD + "Your balance: "
                 + plugin.money(plugin.getBalance(player.getUniqueId())),
                 ChatColor.GRAY + "Pricier kits hold better gear."));
         player.openInventory(inv);
@@ -531,9 +486,9 @@ final class KitShop implements Listener {
             inv.addItem(item.clone());
         }
         for (int slot = 27; slot < 36; slot++) {
-            inv.setItem(slot, named(Material.STAINED_GLASS_PANE, 15, " "));
+            inv.setItem(slot, named(Material.BLACK_STAINED_GLASS_PANE, " "));
         }
-        inv.setItem(BACK, named(Material.BARRIER, 0, ChatColor.RED + "Back to shop"));
+        inv.setItem(BACK, named(Material.BARRIER, ChatColor.RED + "Back to shop"));
         player.openInventory(inv);
     }
 

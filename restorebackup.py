@@ -15,8 +15,12 @@ def saved_folders():
     if not BACKUPS.is_dir():
         return []
     return sorted(
-        path for path in BACKUPS.iterdir()
-        if path.is_dir() and not path.is_symlink() and path.name.startswith(PREFIX)
+        (
+            path for path in BACKUPS.iterdir()
+            if path.is_dir() and not path.is_symlink() and path.name.startswith(PREFIX)
+        ),
+        key=lambda path: path.name,
+        reverse=True,
     )
 
 

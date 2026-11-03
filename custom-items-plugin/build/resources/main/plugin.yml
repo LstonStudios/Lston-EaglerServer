@@ -1,6 +1,7 @@
 name: CustomItems
 version: 1.0.0
 main: net.lstonstudios.customitems.CustomItemsPlugin
+api-version: '26.2'
 author: LstonStudios
 description: Adds custom items such as the lightning sword.
 commands:

@@ -56,6 +56,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
 
     private static final int PLACED_LIMIT = 200000;
     private static final int SHOP_COUNT = 5;
+    private static final int DEFAULT_ITEM_SHOP = 3;
 
     private final Map<UUID, Long> balances = new LinkedHashMap<>();
     private final Map<String, Integer> shopBlocks = new HashMap<>();
@@ -75,13 +76,20 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     private final Map<Material, Long> blockRewards = new LinkedHashMap<>();
 
     private static final long DISPLAY_ONLY = -1;
+    private static final Material[] PANE_MATERIALS = {Material.WHITE_STAINED_GLASS_PANE,
+            Material.ORANGE_STAINED_GLASS_PANE, Material.MAGENTA_STAINED_GLASS_PANE,
+            Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.YELLOW_STAINED_GLASS_PANE,
+            Material.LIME_STAINED_GLASS_PANE, Material.PINK_STAINED_GLASS_PANE, Material.GRAY_STAINED_GLASS_PANE,
+            Material.LIGHT_GRAY_STAINED_GLASS_PANE, Material.CYAN_STAINED_GLASS_PANE,
+            Material.PURPLE_STAINED_GLASS_PANE, Material.BLUE_STAINED_GLASS_PANE,
+            Material.BROWN_STAINED_GLASS_PANE, Material.GREEN_STAINED_GLASS_PANE,
+            Material.RED_STAINED_GLASS_PANE, Material.BLACK_STAINED_GLASS_PANE};
     private static final String[] PANE_COLORS = {"white", "orange", "magenta", "lightblue", "yellow", "lime",
             "pink", "gray", "silver", "cyan", "purple", "blue", "brown", "green", "red", "black"};
 
     // One slot of a shop menu. A price below zero means the item is only displayed.
     private final class Entry {
         Material material;
-        short data;
         int amount = 1;
         long price = DISPLAY_ONLY;
         String name;
@@ -93,7 +101,6 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         Entry copy() {
             Entry e = new Entry();
             e.material = material;
-            e.data = data;
             e.amount = amount;
             e.price = price;
             e.name = name;
@@ -113,7 +120,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         }
 
         ItemStack icon(boolean edit) {
-            ItemStack stack = new ItemStack(material, amount, data);
+            ItemStack stack = new ItemStack(material, amount);
             ItemMeta meta = stack.getItemMeta();
             if (name != null) {
                 meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
@@ -136,7 +143,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             }
             meta.setLore(lore);
             if (glow) {
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
             }
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.values());
             stack.setItemMeta(meta);
@@ -156,6 +163,21 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         ShopHolder(int shop, boolean edit) {
             this.shop = shop;
             this.edit = edit;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return null;
+        }
+    }
+
+    private static final class ItemShopHolder implements InventoryHolder {
+        final int shop;
+        final Map<Integer, Integer> sourceSlots;
+
+        ItemShopHolder(int shop, Map<Integer, Integer> sourceSlots) {
+            this.shop = shop;
+            this.sourceSlots = new HashMap<>(sourceSlots);
         }
 
         @Override
@@ -200,7 +222,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
         kitShop = new KitShop(this);
         getServer().getPluginManager().registerEvents(kitShop, this);
-        for (String name : new String[] {"mgive", "minfo", "mhelp", "sinfo", "cshop", "shop", "login", "admin", "deadmin", "op", "deop", "mute", "unmute", "timeout", "unban", "permhelp", "mreload", "mclear"}) {
+        for (String name : new String[] {"mgive", "minfo", "mhelp", "sinfo", "cshop", "shop", "kit", "login", "admin", "deadmin", "op", "deop", "mute", "unmute", "timeout", "unban", "permhelp", "mreload", "mclear"}) {
             getCommand(name).setExecutor(this);
         }
         new BukkitRunnable() {
@@ -214,7 +236,8 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getOpenInventory().getTopInventory().getHolder() instanceof ShopHolder) {
+            InventoryHolder holder = player.getOpenInventory().getTopInventory().getHolder();
+            if (holder instanceof ShopHolder || holder instanceof ItemShopHolder) {
                 player.closeInventory();
             }
         }
@@ -232,7 +255,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         ConfigurationSection overrides = getConfig().getConfigurationSection("rewards.blocks");
         if (overrides != null) {
             for (String key : overrides.getKeys(false)) {
-                Material material = Material.matchMaterial(key);
+                Material material = parseMaterial(key, 0);
                 if (material == null) {
                     getLogger().warning("Unknown block in rewards.blocks: " + key);
                     continue;
@@ -242,6 +265,30 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         }
         achievementReward = Math.max(0, getConfig().getLong("rewards.achievement", 50));
         buildShopLayout();
+    }
+
+    /** Reads a modern material name, or a pre-1.13 name plus data value kept in older configs. */
+    static Material parseMaterial(String name, int data) {
+        String key = name.trim().toUpperCase(java.util.Locale.ROOT);
+        if (key.equals("MONSTER_EGG")) {
+            return Material.ZOMBIE_SPAWN_EGG;
+        }
+        Material modern = Material.matchMaterial(key);
+        if (modern != null && data == 0) {
+            return modern;
+        }
+        try {
+            Material legacy = Material.getMaterial(key, true);
+            if (legacy != null) {
+                Material converted = Bukkit.getUnsafe().fromLegacy(
+                        new org.bukkit.material.MaterialData(legacy, (byte) data), true);
+                if (converted != null && converted != Material.AIR) {
+                    return converted;
+                }
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return modern;
     }
 
     @SuppressWarnings("unchecked")
@@ -290,7 +337,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return;
         }
         Map<Integer, Entry> out = new TreeMap<>();
-        short[] paneColors = {14, 11, 5, 1, 10, 3};
+        int[] paneColors = {14, 11, 5, 1, 10, 3};
         int row = 0;
         int colorIndex = 0;
         for (Map<String, Object> category : loadCategories(n)) {
@@ -298,18 +345,17 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             if (items.isEmpty() || row + 1 + (items.size() + 8) / 9 > 6) {
                 continue;
             }
-            short color = paneColors[colorIndex++ % paneColors.length];
+            int color = paneColors[colorIndex++ % paneColors.length];
             for (int col = 0; col < 9; col++) {
                 Entry pane = new Entry();
-                pane.material = Material.STAINED_GLASS_PANE;
-                pane.data = color;
+                pane.material = PANE_MATERIALS[color];
                 pane.name = col == 4 ? String.valueOf(category.get("name")) : " ";
                 out.put(row * 9 + col, pane);
             }
             row++;
             for (int i = 0; i < items.size(); i++) {
                 Map<String, Object> raw = items.get(i);
-                Material material = Material.matchMaterial(String.valueOf(raw.get("material")));
+                Material material = parseMaterial(String.valueOf(raw.get("material")), 0);
                 if (material == null || !(raw.get("price") instanceof Number)) {
                     getLogger().warning("Skipping invalid shop item: " + raw);
                     continue;
@@ -339,9 +385,6 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             String path = base + "." + slot.getKey() + ".";
             Entry e = slot.getValue();
             getConfig().set(path + "material", e.material.name());
-            if (e.data != 0) {
-                getConfig().set(path + "data", (int) e.data);
-            }
             getConfig().set(path + "amount", e.amount);
             getConfig().set(path + "price", e.price);
             if (e.name != null) {
@@ -373,14 +416,17 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             } catch (NumberFormatException ex) {
                 continue;
             }
-            Material material = section == null ? null : Material.matchMaterial(section.getString("material", ""));
+            Material material = section == null ? null
+                    : parseMaterial(section.getString("material", ""), section.getInt("data", 0));
             if (slot < 0 || slot > 53 || material == null) {
                 getLogger().warning("Skipping invalid shop " + n + " slot: " + key);
                 continue;
             }
+            if (section.getString("name", "").toLowerCase(java.util.Locale.ROOT).contains("verity")) {
+                continue; // The Verity plugin was dropped.
+            }
             Entry e = new Entry();
             e.material = material;
-            e.data = (short) section.getInt("data", 0);
             e.amount = Math.max(1, Math.min(64, section.getInt("amount", 1)));
             e.price = section.getLong("price", DISPLAY_ONLY);
             e.name = section.getString("name");
@@ -393,6 +439,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     }
 
     private void buildShopLayout() {
+        ensureItemShopDefaults();
         for (int n = 1; n <= SHOP_COUNT; n++) {
             migrateCategories(n);
             Shop shop = new Shop();
@@ -400,6 +447,84 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             shop.slots.putAll(readEntries(n));
             shops[n - 1] = shop;
         }
+    }
+
+    private void ensureItemShopDefaults() {
+        if (getConfig().getBoolean("item-shop.defaults-created")) {
+            return;
+        }
+
+        boolean hasItems = false;
+        ConfigurationSection slots = getConfig().getConfigurationSection(
+                "shops." + DEFAULT_ITEM_SHOP + ".slots");
+        if (slots != null) {
+            for (String key : slots.getKeys(false)) {
+                ConfigurationSection item = slots.getConfigurationSection(key);
+                if (item != null && item.getLong("price", DISPLAY_ONLY) >= 0
+                        && item.getString("command") == null) {
+                    hasItems = true;
+                    break;
+                }
+            }
+        }
+        boolean hasCategoryItems = false;
+        for (Map<?, ?> category : getConfig().getMapList(
+                "shops." + DEFAULT_ITEM_SHOP + ".categories")) {
+            Object rawItems = category.get("items");
+            if (!(rawItems instanceof List<?>)) {
+                continue;
+            }
+            for (Object rawItem : (List<?>) rawItems) {
+                if (rawItem instanceof Map<?, ?>) {
+                    Map<?, ?> item = (Map<?, ?>) rawItem;
+                    if (item.get("material") != null && item.get("price") instanceof Number
+                            && item.get("command") == null) {
+                        hasCategoryItems = true;
+                        break;
+                    }
+                }
+            }
+            if (hasCategoryItems) {
+                break;
+            }
+        }
+        if (!hasItems && hasCategoryItems) {
+            getConfig().set("shops." + DEFAULT_ITEM_SHOP + ".slots", null);
+            hasItems = true;
+        }
+
+        if (!hasItems) {
+            getConfig().set("shops." + DEFAULT_ITEM_SHOP + ".title", "Items");
+            Map<String, Object> category = new LinkedHashMap<>();
+            category.put("name", "&6&lSupplies");
+            List<Map<String, Object>> items = new ArrayList<>();
+            addDefaultItem(items, "COBBLESTONE", 64, "&764 Cobblestone", 64);
+            addDefaultItem(items, "TORCH", 64, "&e64 Torches", 64);
+            addDefaultItem(items, "GLASS", 32, "&f32 Glass", 96);
+            addDefaultItem(items, "OAK_PLANKS", 64, "&664 Oak Planks", 128);
+            addDefaultItem(items, "ENDER_PEARL", 8, "&d8 Ender Pearls", 200);
+            addDefaultItem(items, "IRON_INGOT", 16, "&f16 Iron Ingots", 240);
+            addDefaultItem(items, "OBSIDIAN", 16, "&516 Obsidian", 400);
+            addDefaultItem(items, "GOLDEN_APPLE", 1, "&eGolden Apple", 500);
+            addDefaultItem(items, "DIAMOND", 1, "&bDiamond", 1000);
+            addDefaultItem(items, "TOTEM_OF_UNDYING", 1, "&eTotem of Undying", 2500);
+            category.put("items", items);
+            getConfig().set("shops." + DEFAULT_ITEM_SHOP + ".categories",
+                    java.util.Collections.singletonList(category));
+            getConfig().set("shops." + DEFAULT_ITEM_SHOP + ".slots", null);
+        }
+        getConfig().set("item-shop.defaults-created", true);
+        saveConfig();
+    }
+
+    private static void addDefaultItem(List<Map<String, Object>> items, String material,
+            int amount, String name, long price) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("material", material);
+        item.put("amount", amount);
+        item.put("name", name);
+        item.put("price", price);
+        items.add(item);
     }
 
     private void loadData() {
@@ -531,6 +656,10 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return;
         }
         Long override = blockRewards.get(block.getType());
+        if (override == null && block.getType().name().startsWith("DEEPSLATE_")) {
+            Material base = Material.getMaterial(block.getType().name().substring("DEEPSLATE_".length()));
+            override = base == null ? null : blockRewards.get(base);
+        }
         reward(player, override != null ? override : blockReward, "mined " + niceName(block.getType()));
     }
 
@@ -648,8 +777,9 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         lines.add(ChatColor.YELLOW + "Money commands:");
         lines.add(ChatColor.WHITE + " /minfo [player] - see a balance");
         lines.add(ChatColor.WHITE + " /mgive <player> <amount> - send some of your money to a player");
-        lines.add(ChatColor.WHITE + " /cshop <1-5> - open a shop (or right-click a shop block)");
-        lines.add(ChatColor.WHITE + " /shop <1-5> - buy shulker box kits (gear, weapons, food); pricier = better");
+        lines.add(ChatColor.WHITE + " /shop [1-5] - buy individual items; no number opens the item shop");
+        lines.add(ChatColor.WHITE + " /cshop <1-5> - open or edit an item shop (admins)");
+        lines.add(ChatColor.WHITE + " /kit [1-5] - buy shulker box kits (gear, weapons, food); pricier = better");
         lines.add(ChatColor.WHITE + " /mhelp - list the money commands");
         lines.add(ChatColor.YELLOW + "Name styling (/nameeffect):");
         lines.add(ChatColor.WHITE + " /nameeffect set <before>|<after> adds text before and after your name in"
@@ -750,8 +880,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    // Opens a written book window (pages scroll with the arrows). 1.12 has no API for this,
-    // so a temporary book is held and the client is told to open it.
+    // Opens a written book window (pages scroll with the arrows).
     private boolean openBook(Player player, List<String> lines) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         org.bukkit.inventory.meta.BookMeta meta = (org.bukkit.inventory.meta.BookMeta) book.getItemMeta();
@@ -760,31 +889,8 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         meta.setPages(guidePages());
         book.setItemMeta(meta);
 
-        int slot = player.getInventory().getHeldItemSlot();
-        ItemStack previous = player.getInventory().getItem(slot);
-        player.getInventory().setItem(slot, book);
-        player.updateInventory();
-        try {
-            String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-            Object handle = player.getClass().getMethod("getHandle").invoke(player);
-            Object connection = handle.getClass().getField("playerConnection").get(handle);
-            Class<?> byteBuf = Class.forName("io.netty.buffer.ByteBuf");
-            Object buffer = Class.forName("io.netty.buffer.Unpooled").getMethod("buffer").invoke(null);
-            byteBuf.getMethod("writeByte", int.class).invoke(buffer, 0);
-            Class<?> serializer = Class.forName("net.minecraft.server." + version + ".PacketDataSerializer");
-            Object data = serializer.getConstructor(byteBuf).newInstance(buffer);
-            Class<?> payload = Class.forName("net.minecraft.server." + version + ".PacketPlayOutCustomPayload");
-            Object packet = payload.getConstructor(String.class, serializer).newInstance("MC|BOpen", data);
-            Class<?> packetClass = Class.forName("net.minecraft.server." + version + ".Packet");
-            connection.getClass().getMethod("sendPacket", packetClass).invoke(connection, packet);
-            return true;
-        } catch (Exception | LinkageError e) {
-            getLogger().warning("Could not open the guide book, using chat instead: " + e);
-            return false;
-        } finally {
-            player.getInventory().setItem(slot, previous);
-            player.updateInventory();
-        }
+        player.openBook(book);
+        return true;
     }
 
     @EventHandler
@@ -864,6 +970,33 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         player.openInventory(inventory);
     }
 
+    private void openItemShop(Player player, int n) {
+        Shop shop = shops[n - 1];
+        List<Map.Entry<Integer, Entry>> products = new ArrayList<>();
+        for (Map.Entry<Integer, Entry> slot : shop.slots.entrySet()) {
+            Entry item = slot.getValue();
+            if (item.isBuyable() && item.command == null) {
+                products.add(slot);
+            }
+        }
+        if (products.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "There are no individual items for sale in this shop.");
+            return;
+        }
+
+        int size = Math.min(54, Math.max(27, ((products.size() + 8) / 9) * 9));
+        Map<Integer, Integer> sourceSlots = new HashMap<>();
+        for (int index = 0; index < products.size() && index < size; index++) {
+            sourceSlots.put(index, products.get(index).getKey());
+        }
+        Inventory inventory = Bukkit.createInventory(new ItemShopHolder(n, sourceSlots), size,
+                fitTitle("Item Shop", ""));
+        for (int index = 0; index < products.size() && index < size; index++) {
+            inventory.setItem(index, products.get(index).getValue().icon(false));
+        }
+        player.openInventory(inventory);
+    }
+
     private void openEditor(Player player, int n) {
         for (Map.Entry<UUID, EditSession> other : editSessions.entrySet()) {
             if (other.getValue().shop == n && !other.getKey().equals(player.getUniqueId())) {
@@ -902,13 +1035,12 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     private Entry fromStack(ItemStack stack, int amount) {
         Entry e = new Entry();
         e.material = stack.getType();
-        e.data = e.material.getMaxDurability() == 0 ? stack.getDurability() : 0;
         e.amount = Math.max(1, Math.min(64, amount));
         ItemMeta meta = stack.getItemMeta();
         if (meta != null && meta.hasDisplayName()) {
             e.name = meta.getDisplayName().replace('\u00a7', '&');
         }
-        boolean pane = e.material == Material.STAINED_GLASS_PANE || e.material == Material.THIN_GLASS;
+        boolean pane = e.material.name().endsWith("STAINED_GLASS_PANE") || e.material == Material.GLASS_PANE;
         e.price = DISPLAY_ONLY;
         e.askPrice = !pane;
         return e;
@@ -917,6 +1049,22 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onShopClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
+        if (top.getHolder() instanceof ItemShopHolder) {
+            event.setCancelled(true);
+            if (event.getClickedInventory() != top || !(event.getWhoClicked() instanceof Player)) {
+                return;
+            }
+            ItemShopHolder holder = (ItemShopHolder) top.getHolder();
+            Integer sourceSlot = holder.sourceSlots.get(event.getSlot());
+            if (sourceSlot == null) {
+                return;
+            }
+            Entry item = shops[holder.shop - 1].slots.get(sourceSlot);
+            if (item != null && item.isBuyable() && item.command == null) {
+                purchaseShopItem((Player) event.getWhoClicked(), item);
+            }
+            return;
+        }
         if (!(top.getHolder() instanceof ShopHolder)) {
             return;
         }
@@ -937,6 +1085,10 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         if (item == null || !item.isBuyable()) {
             return;
         }
+        purchaseShopItem(player, item);
+    }
+
+    private void purchaseShopItem(Player player, Entry item) {
         long balance = getBalance(player.getUniqueId());
         if (balance < item.price) {
             player.sendMessage(ChatColor.RED + "You need " + money(item.price - balance) + " more.");
@@ -949,16 +1101,20 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                 return;
             }
         } else {
-            Map<Integer, ItemStack> leftover = player.getInventory()
-                    .addItem(new ItemStack(item.material, item.amount, item.data));
-            if (!leftover.isEmpty()) {
-                for (ItemStack stack : leftover.values()) {
-                    player.getInventory().removeItem(new ItemStack(stack.getType(), item.amount - stack.getAmount(),
-                            item.data));
+            Inventory preview = Bukkit.createInventory(null, 36);
+            ItemStack[] contents = player.getInventory().getStorageContents();
+            for (int slot = 0; slot < contents.length; slot++) {
+                if (contents[slot] != null) {
+                    contents[slot] = contents[slot].clone();
                 }
+            }
+            preview.setStorageContents(contents);
+            Map<Integer, ItemStack> leftover = preview.addItem(new ItemStack(item.material, item.amount));
+            if (!leftover.isEmpty()) {
                 player.sendMessage(ChatColor.RED + "Your inventory is full.");
                 return;
             }
+            player.getInventory().setStorageContents(preview.getStorageContents());
         }
         balances.put(player.getUniqueId(), balance - item.price);
         dirty = true;
@@ -1169,6 +1325,8 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             case "cshop":
                 return manageShopBlock(sender, args);
             case "shop":
+                return openItemShopCommand(sender, args);
+            case "kit":
                 return kitShop.command(sender, args);
             case "mreload":
                 loadSettings();
@@ -1280,9 +1438,9 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                 + "), kill mobs (" + money(mobReward) + "), kill players (" + money(playerReward) + "), earn achievements (" + money(achievementReward) + ").");
         sender.sendMessage(ChatColor.GRAY + "Blocks you place yourself and creative mode pay nothing.");
         sender.sendMessage(ChatColor.YELLOW + "/minfo [player]" + ChatColor.WHITE + " - see a balance");
-        sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5>" + ChatColor.WHITE
-                + " - buy items (or right-click a shop block)");
-        sender.sendMessage(ChatColor.YELLOW + "/shop <1-5>" + ChatColor.WHITE
+        sender.sendMessage(ChatColor.YELLOW + "/shop [1-5]" + ChatColor.WHITE
+                + " - buy individual items (or right-click a shop block)");
+        sender.sendMessage(ChatColor.YELLOW + "/kit [1-5]" + ChatColor.WHITE
                 + " - buy shulker box kits; the pricier the kit, the better the gear");
         sender.sendMessage(ChatColor.YELLOW + "/mgive <player> <amount>" + ChatColor.WHITE
                 + (sender.hasPermission("money.admin") ? " - give money (unlimited for admins)"
@@ -1292,7 +1450,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         if (sender.hasPermission("money.admin")) {
 
             sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5>" + ChatColor.WHITE
-                    + " - (admin) opens the shop in edit mode: move, copy and delete items, set prices");
+                    + " - (admin) opens the item shop in edit mode: move, copy and delete items, set prices");
             sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> view" + ChatColor.WHITE
                     + " - preview the member (buy-only) view");
             sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> section <color> <name>" + ChatColor.WHITE
@@ -1333,7 +1491,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return true;
         }
         if (args.length == 0) {
-            openShop((Player) sender, 1);
+            openShop((Player) sender, DEFAULT_ITEM_SHOP);
             return true;
         }
         int shop = parseShop(args[0]);
@@ -1400,6 +1558,27 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         return true;
     }
 
+    private boolean openItemShopCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Only players can open the item shop.");
+            return true;
+        }
+        if (args.length > 1) {
+            sender.sendMessage(ChatColor.RED + "Usage: /shop [1-" + SHOP_COUNT + "]");
+            return true;
+        }
+        int shop = DEFAULT_ITEM_SHOP;
+        if (args.length == 1) {
+            shop = parseShop(args[0]);
+            if (shop < 0) {
+                sender.sendMessage(ChatColor.RED + "Usage: /shop [1-" + SHOP_COUNT + "]");
+                return true;
+            }
+        }
+        openItemShop((Player) sender, shop);
+        return true;
+    }
+
     private boolean giveSection(CommandSender sender, String[] args) {
         if (args.length < 4) {
             return false;
@@ -1414,7 +1593,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             name.append(' ').append(args[i]);
         }
         Player player = (Player) sender;
-        ItemStack pane = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) color);
+        ItemStack pane = new ItemStack(PANE_MATERIALS[color]);
         ItemMeta meta = pane.getItemMeta();
         meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name.toString()));
         pane.setItemMeta(meta);

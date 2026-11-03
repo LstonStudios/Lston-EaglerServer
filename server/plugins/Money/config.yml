@@ -1,4 +1,4 @@
-# 
+#
 # Five shop menus: /cshop 1 ... /cshop 5, or a block set with /cshop <n> setblock.
 # Rename a menu in game with /cshop <n> rename <name>.
 # Each category gets its own header row, then its items below it,
@@ -251,60 +251,50 @@ shops:
     title: Shop
     slots:
       '0':
-        material: NETHER_STAR
-        amount: 64
-        price: -1
-        name: '&e&lVerity Box'
-      '1':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
-        name: ' '
+      '1':
+        material: WHITE_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
       '2':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '3':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '4':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: '&c&lAbilities'
       '5':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '6':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '7':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '8':
-        material: STAINED_GLASS_PANE
-        data: 14
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '9':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 400
         name: '&fGale Force'
@@ -312,7 +302,7 @@ shops:
         command: customability %player% gale 1
         glow: true
       '10':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 500
         name: '&dQuantum Shift'
@@ -320,7 +310,7 @@ shops:
         command: customability %player% quantum 1
         glow: true
       '11':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: -1
         name: '&aTailwind'
@@ -328,7 +318,7 @@ shops:
         command: customability %player% tailwind 1
         glow: true
       '12':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 700
         name: '&6Overclock'
@@ -336,7 +326,7 @@ shops:
         command: customability %player% overclock 1
         glow: true
       '14':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 900
         name: '&7Chitinous Shield'
@@ -344,7 +334,7 @@ shops:
         command: customability %player% chitinous 1
         glow: true
       '15':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 1000
         name: '&eAegis Burst'
@@ -352,7 +342,7 @@ shops:
         command: customability %player% aegis 1
         glow: true
       '16':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 1100
         name: '&8Shadow Step'
@@ -360,7 +350,7 @@ shops:
         command: customability %player% shadow 1
         glow: true
       '17':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 1200
         name: '&cPyroclastic Smash'
@@ -368,7 +358,7 @@ shops:
         command: customability %player% pyroclastic 1
         glow: true
       '18':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 1300
         name: '&4Reaper''s Harvest'
@@ -376,7 +366,7 @@ shops:
         command: customability %player% reaper 1
         glow: true
       '19':
-        material: MONSTER_EGG
+        material: ZOMBIE_SPAWN_EGG
         amount: 1
         price: 1500
         name: '&5Void Tether'
@@ -384,61 +374,52 @@ shops:
         command: customability %player% void 1
         glow: true
       '27':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '28':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '29':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '30':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '31':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: '&6&lCustom TNT'
       '32':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '33':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '34':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '35':
-        material: STAINED_GLASS_PANE
-        data: 11
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: ' '
       '36':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 600
         name: '&8Poop TNT'
@@ -446,7 +427,7 @@ shops:
         command: customtnt %player% poop 1
         glow: true
       '37':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 800
         name: '&dFirework TNT'
@@ -454,7 +435,7 @@ shops:
         command: customtnt %player% firework 1
         glow: true
       '38':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 1000
         name: '&aSlime TNT'
@@ -462,7 +443,7 @@ shops:
         command: customtnt %player% slime 1
         glow: true
       '39':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 1200
         name: '&bAnti-TNT'
@@ -470,7 +451,7 @@ shops:
         command: customtnt %player% anti-tnt 1
         glow: true
       '40':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 1500
         name: '&cFire TNT'
@@ -478,7 +459,7 @@ shops:
         command: customtnt %player% fire 1
         glow: true
       '41':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 2000
         name: '&drdmTNT'
@@ -486,7 +467,7 @@ shops:
         command: customtnt %player% rdm 1
         glow: true
       '42':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 2500
         name: '&9X-Ray TNT'
@@ -494,7 +475,7 @@ shops:
         command: customtnt %player% x-ray 1
         glow: true
       '43':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 3000
         name: '&7Mining TNT'
@@ -502,7 +483,7 @@ shops:
         command: customtnt %player% mining 1
         glow: true
       '44':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 3500
         name: '&2Mob TNT'
@@ -510,7 +491,7 @@ shops:
         command: customtnt %player% mob 1
         glow: true
       '45':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 4000
         name: '&6Sun TNT'
@@ -518,7 +499,7 @@ shops:
         command: customtnt %player% sun 1
         glow: true
       '46':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 4500
         name: '&4Boss TNT'
@@ -526,7 +507,7 @@ shops:
         command: customtnt %player% boss 1
         glow: true
       '47':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 5000
         name: '&5Black Hole TNT'
@@ -534,7 +515,7 @@ shops:
         command: customtnt %player% black-hole 1
         glow: true
       '48':
-        material: COMMAND_MINECART
+        material: COMMAND_BLOCK_MINECART
         amount: 1
         price: 6000
         name: '&4Nuke TNT'
@@ -545,52 +526,43 @@ shops:
     title: Shop 2
     slots:
       '0':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '1':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '2':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '3':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '4':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '5':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '6':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '7':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '8':
-        material: STAINED_GLASS_PANE
-        data: 4
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '9':
-        material: GOLD_SWORD
+        material: GOLDEN_SWORD
         amount: 1
         price: 500
         name: '&e&l✦ Lightning &f&lSword &e&l✦'
@@ -613,7 +585,7 @@ shops:
         name: '&2&l✦ Fall &a&lSword &2&l✦'
         command: customsword %player% fall 1
       '13':
-        material: WOOD_SWORD
+        material: WOODEN_SWORD
         amount: 1
         price: 5000
         name: '&8&l✦ Bad &4&lSword &8&l✦'
@@ -625,53 +597,44 @@ shops:
         name: '&d&l✦ TP &f&lSword &d&l✦'
         command: customsword %player% tp 1
       '18':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '19':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '20':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '21':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '22':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
         name: '&d&lCustom Guns'
       '23':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '24':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '25':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '26':
-        material: STAINED_GLASS_PANE
-        data: 6
+        material: WHITE_STAINED_GLASS_PANE
         amount: 1
         price: -1
       '27':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 500
         name: '&7&l✦ Pistol ✦'
@@ -679,7 +642,7 @@ shops:
         command: cgun %player% pistol 1
         glow: true
       '28':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 1000
         name: '&e&l✦ SMG ✦'
@@ -687,7 +650,7 @@ shops:
         command: cgun %player% smg 1
         glow: true
       '29':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 1500
         name: '&6&l✦ Shotgun ✦'
@@ -695,7 +658,7 @@ shops:
         command: cgun %player% shotgun 1
         glow: true
       '30':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 2000
         name: '&4&l✦ Revolver ✦'
@@ -703,7 +666,7 @@ shops:
         command: cgun %player% revolver 1
         glow: true
       '31':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 2500
         name: '&a&l✦ Assault Rifle ✦'
@@ -711,7 +674,7 @@ shops:
         command: cgun %player% rifle 1
         glow: true
       '32':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 3000
         name: '&8&l✦ Minigun ✦'
@@ -719,7 +682,7 @@ shops:
         command: cgun %player% minigun 1
         glow: true
       '33':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 3500
         name: '&b&l✦ Freeze Ray ✦'
@@ -727,23 +690,15 @@ shops:
         command: cgun %player% freeze 1
         glow: true
       '34':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 4000
         name: '&b&l✦ Sniper ✦'
         description: One long-range, high-damage shot.
         command: cgun %player% sniper 1
         glow: true
-      '36':
-        material: GOLD_HOE
-        amount: 1
-        price: 5000
-        name: '&c&l✦ Rocket Launcher ✦'
-        description: Explodes where it lands, no block damage.
-        command: cgun %player% rocket 1
-        glow: true
       '37':
-        material: GOLD_HOE
+        material: GOLDEN_HOE
         amount: 1
         price: 6000
         name: '&5&l✦ Railgun ✦'

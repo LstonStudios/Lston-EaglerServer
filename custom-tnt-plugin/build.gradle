@@ -6,23 +6,23 @@ group = 'net.lstonstudios'
 version = '1.0.0'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 repositories {
     mavenCentral()
     maven {
-        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        url = 'https://maven.enginehub.org/repo/'
     }
 }
 
 dependencies {
-    compileOnly('org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT') {
-        transitive = false
-    }
-    compileOnly files('../server/plugins/worldguard-bukkit-6.2.2.jar',
-            '../server/plugins/worldedit-bukkit-6.1.9.jar')
+    compileOnly 'io.papermc.paper:paper-api:26.2.build.135-stable'
+    compileOnly 'com.sk89q.worldguard:worldguard-bukkit:7.0.19'
 }
 
 tasks.jar {

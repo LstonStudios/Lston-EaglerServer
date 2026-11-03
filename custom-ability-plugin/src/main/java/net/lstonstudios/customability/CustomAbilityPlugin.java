@@ -49,27 +49,27 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
     private static final String LEGACY_MARKER_PREFIX = ChatColor.BLACK + "CustomAbility:";
 
     private enum Ability {
-        PYROCLASTIC_SMASH("pyroclastic", Material.MONSTER_EGG, ChatColor.RED, "Pyroclastic Smash",
+        PYROCLASTIC_SMASH("pyroclastic", Material.PAPER, ChatColor.RED, "Pyroclastic Smash",
                 "Fire wave: 3 hearts of damage and 4s of burning.", 8),
-        VOID_TETHER("void", Material.MONSTER_EGG, ChatColor.DARK_PURPLE, "Void Tether",
+        VOID_TETHER("void", Material.PAPER, ChatColor.DARK_PURPLE, "Void Tether",
                 "Hit a player to pull them 5 blocks closer and slow them (Slowness II, 3s).", 12),
-        REAPERS_HARVEST("reaper", Material.MONSTER_EGG, ChatColor.DARK_RED, "Reaper's Harvest",
+        REAPERS_HARVEST("reaper", Material.PAPER, ChatColor.DARK_RED, "Reaper's Harvest",
                 "Strength II for 6s, but Hunger III while it lasts.", 25),
-        SONIC_BOOM("sonic", Material.MONSTER_EGG, ChatColor.AQUA, "Sonic Boom",
+        SONIC_BOOM("sonic", Material.PAPER, ChatColor.AQUA, "Sonic Boom",
                 "Knocks back everything within 4 blocks by 5 blocks and inflicts Nausea (5s).", 10),
-        QUANTUM_SHIFT("quantum", Material.MONSTER_EGG, ChatColor.LIGHT_PURPLE, "Quantum Shift",
+        QUANTUM_SHIFT("quantum", Material.PAPER, ChatColor.LIGHT_PURPLE, "Quantum Shift",
                 "Teleports you 6 blocks forward, even through thin walls.", 8),
-        CHITINOUS_SHIELD("chitinous", Material.MONSTER_EGG, ChatColor.GRAY, "Chitinous Shield",
+        CHITINOUS_SHIELD("chitinous", Material.PAPER, ChatColor.GRAY, "Chitinous Shield",
                 "Resistance III and Slowness I for 5s.", 20),
-        OVERCLOCK("overclock", Material.MONSTER_EGG, ChatColor.GOLD, "Overclock",
+        OVERCLOCK("overclock", Material.PAPER, ChatColor.GOLD, "Overclock",
                 "Speed III and Haste II for 10s.", 25),
-        AEGIS_BURST("aegis", Material.MONSTER_EGG, ChatColor.YELLOW, "Aegis Burst",
+        AEGIS_BURST("aegis", Material.PAPER, ChatColor.YELLOW, "Aegis Burst",
                 "Clears negative effects and grants 2 absorption hearts.", 30),
-        GALE_FORCE("gale", Material.MONSTER_EGG, ChatColor.WHITE, "Gale Force",
+        GALE_FORCE("gale", Material.PAPER, ChatColor.WHITE, "Gale Force",
                 "Launches you 10 blocks up with fall damage immunity for 4s.", 15),
-        SHADOW_STEP("shadow", Material.MONSTER_EGG, ChatColor.DARK_GRAY, "Shadow Step",
+        SHADOW_STEP("shadow", Material.PAPER, ChatColor.DARK_GRAY, "Shadow Step",
                 "Invisible, with armor and held items hidden, for 4s.", 20),
-        TAILWIND("tailwind", Material.MONSTER_EGG, ChatColor.GREEN, "Tailwind",
+        TAILWIND("tailwind", Material.PAPER, ChatColor.GREEN, "Tailwind",
                 "Speed II for 8s for you and teammates within 8 blocks.", 20);
 
         final String key;
@@ -156,7 +156,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
         lore.add(ChatColor.DARK_GRAY + "" + a.cooldownSeconds + "s" + hide(MARKER_PREFIX + a.key));
         lore.add(ChatColor.YELLOW + "Uses left: " + uses + "/" + MAX_USES + hide(USES_MARKER_PREFIX + uses));
         meta.setLore(lore);
-        meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         item.setItemMeta(meta);
         return item;
@@ -383,10 +383,10 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
                 voidTether(p);
                 return true;
             case REAPERS_HARVEST:
-                p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 120, 1), true);
+                p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 120, 1), true);
                 p.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 120, 2), true);
                 p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 1f, 1.5f);
-                p.getWorld().spawnParticle(Particle.SMOKE_LARGE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
+                p.getWorld().spawnParticle(Particle.LARGE_SMOKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
                 return true;
             case SONIC_BOOM:
                 sonicBoom(p);
@@ -394,15 +394,15 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
             case QUANTUM_SHIFT:
                 return quantumShift(p);
             case CHITINOUS_SHIELD:
-                p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 100, 2), true);
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 0), true);
+                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2), true);
+                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 0), true);
                 p.getWorld().playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 0.8f);
-                p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0.1);
+                p.getWorld().spawnParticle(Particle.ENCHANTED_HIT, p.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0.1);
                 return true;
             case OVERCLOCK:
                 p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 200, 2), true);
-                p.addPotionEffect(new PotionEffect(PotionEffectType.FAST_DIGGING, 200, 1), true);
-                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_LAUNCH, 1f, 1.4f);
+                p.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 200, 1), true);
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1.4f);
                 p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 0.2, 0), 25, 0.3, 0.1, 0.3, 0.05);
                 return true;
             case AEGIS_BURST:
@@ -413,12 +413,12 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
                 }
                 p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 1200, 0), true);
                 p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.6f, 1.8f);
-                p.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, p.getLocation().add(0, 1, 0), 30, 0.5, 0.8, 0.5, 0);
+                p.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, p.getLocation().add(0, 1, 0), 30, 0.5, 0.8, 0.5, 0);
                 return true;
             case GALE_FORCE:
                 p.setVelocity(new Vector(0, 1.36, 0));
                 fallImmunity.put(p.getUniqueId(), System.currentTimeMillis() + 4000L);
-                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDERDRAGON_FLAP, 1f, 1.2f);
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 1f, 1.2f);
                 p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation(), 40, 0.4, 0.1, 0.4, 0.1);
                 return true;
             case SHADOW_STEP:
@@ -434,10 +434,10 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
 
     private boolean isNegative(PotionEffectType t) {
         return t.equals(PotionEffectType.POISON) || t.equals(PotionEffectType.WITHER)
-                || t.equals(PotionEffectType.SLOW) || t.equals(PotionEffectType.SLOW_DIGGING)
-                || t.equals(PotionEffectType.WEAKNESS) || t.equals(PotionEffectType.CONFUSION)
+                || t.equals(PotionEffectType.SLOWNESS) || t.equals(PotionEffectType.MINING_FATIGUE)
+                || t.equals(PotionEffectType.WEAKNESS) || t.equals(PotionEffectType.NAUSEA)
                 || t.equals(PotionEffectType.BLINDNESS) || t.equals(PotionEffectType.HUNGER)
-                || t.equals(PotionEffectType.HARM) || t.equals(PotionEffectType.LEVITATION)
+                || t.equals(PotionEffectType.INSTANT_DAMAGE) || t.equals(PotionEffectType.LEVITATION)
                 || t.equals(PotionEffectType.UNLUCK);
     }
 
@@ -468,7 +468,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
     private void voidTether(Player p) {
         Location eye = p.getEyeLocation();
         Vector dir = eye.getDirection().normalize();
-        p.getWorld().playSound(eye, Sound.ENTITY_ENDERPEARL_THROW, 1f, 0.7f);
+        p.getWorld().playSound(eye, Sound.ENTITY_ENDER_PEARL_THROW, 1f, 0.7f);
         for (double d = 1; d <= 25; d += 0.5) {
             Location point = eye.clone().add(dir.clone().multiply(d));
             if (point.getBlock().getType().isSolid()) {
@@ -486,8 +486,8 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
                             target.teleport(dest);
                         }
                     }
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 1), true);
-                    p.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMEN_TELEPORT, 1f, 0.8f);
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1), true);
+                    p.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.8f);
                     return;
                 }
             }
@@ -496,7 +496,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
 
     private void sonicBoom(Player p) {
         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.5f);
-        p.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, p.getLocation().add(0, 1, 0), 1);
+        p.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, p.getLocation().add(0, 1, 0), 1);
         p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1, 0), 60, 2, 0.3, 2, 0.15);
         for (Entity e : p.getNearbyEntities(4, 4, 4)) {
             if (e.getLocation().distanceSquared(p.getLocation()) > 16) {
@@ -506,7 +506,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
             away = away.lengthSquared() < 0.0001 ? new Vector(1, 0, 0) : away.normalize();
             e.setVelocity(away.multiply(1.5).setY(0.4));
             if (e instanceof LivingEntity) {
-                ((LivingEntity) e).addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 100, 0), true);
+                ((LivingEntity) e).addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 100, 0), true);
             }
         }
     }
@@ -520,7 +520,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
                 p.getWorld().spawnParticle(Particle.PORTAL, start.clone().add(0, 1, 0), 50, 0.3, 0.6, 0.3, 0.5);
                 p.teleport(dest);
                 p.getWorld().spawnParticle(Particle.PORTAL, dest.clone().add(0, 1, 0), 50, 0.3, 0.6, 0.3, 0.5);
-                p.getWorld().playSound(dest, Sound.ENTITY_ENDERMEN_TELEPORT, 1f, 1.2f);
+                p.getWorld().playSound(dest, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1.2f);
                 return true;
             }
         }
@@ -542,8 +542,8 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
         inv.setItemInMainHand(null);
         inv.setItemInOffHand(null);
         p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 80, 0, false, false), true);
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDERMEN_TELEPORT, 0.6f, 0.5f);
-        p.getWorld().spawnParticle(Particle.SMOKE_LARGE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 0.5f);
+        p.getWorld().spawnParticle(Particle.LARGE_SMOKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
         final UUID id = p.getUniqueId();
         new BukkitRunnable() {
             @Override
@@ -572,7 +572,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
         Team team = p.getScoreboard().getEntryTeam(p.getName());
         PotionEffect speed = new PotionEffect(PotionEffectType.SPEED, 160, 1);
         p.addPotionEffect(speed, true);
-        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDERDRAGON_FLAP, 1f, 1.6f);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 1f, 1.6f);
         p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1, 0), 20, 0.4, 0.5, 0.4, 0.05);
         if (team == null) {
             return;

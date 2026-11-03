@@ -1,5 +1,6 @@
 name: CustomGun
 version: 1.0.0
+api-version: '26.2'
 main: net.lstonstudios.customgun.CustomGunPlugin
 author: LstonStudios
 description: Right-click guns with hitscan shots.

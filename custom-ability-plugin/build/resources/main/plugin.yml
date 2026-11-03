@@ -1,5 +1,6 @@
 name: CustomAbility
 version: 1.0.0
+api-version: '26.2'
 main: net.lstonstudios.customability.CustomAbilityPlugin
 author: LstonStudios
 description: Right-click ability items for combat, defense and movement.

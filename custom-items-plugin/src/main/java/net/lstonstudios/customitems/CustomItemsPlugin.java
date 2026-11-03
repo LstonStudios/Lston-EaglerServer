@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -36,8 +37,9 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.material.MaterialData;
-import org.bukkit.material.Button;
+import org.bukkit.Tag;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -50,11 +52,11 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
     private static final String PASS_BUTTON_MARKER = "CustomItems:one-time-redstone-button";
 
     private enum SwordType {
-        LIGHTNING("lightning", Material.GOLD_SWORD, ChatColor.YELLOW, ChatColor.WHITE, "Lightning", "Strikes lightning on whoever you hit."),
+        LIGHTNING("lightning", Material.GOLDEN_SWORD, ChatColor.YELLOW, ChatColor.WHITE, "Lightning", "Strikes lightning on whoever you hit."),
         EXPLOSION("explosion", Material.IRON_SWORD, ChatColor.RED, ChatColor.GOLD, "Explosion", "Explodes where you hit without breaking blocks."),
         PEARL("pearl", Material.DIAMOND_SWORD, ChatColor.DARK_PURPLE, ChatColor.AQUA, "Pearl", "Teleports you to whoever you hit."),
         FALL("fall", Material.STONE_SWORD, ChatColor.DARK_GREEN, ChatColor.GREEN, "Fall", "Launches whoever you hit 8 blocks into the air."),
-        BAD("bad", Material.WOOD_SWORD, ChatColor.DARK_GRAY, ChatColor.DARK_RED, "Bad", "Gives whoever you hit every bad effect for 3 seconds."),
+        BAD("bad", Material.WOODEN_SWORD, ChatColor.DARK_GRAY, ChatColor.DARK_RED, "Bad", "Gives whoever you hit every bad effect for 3 seconds."),
         TP("tp", Material.DIAMOND_AXE, ChatColor.LIGHT_PURPLE, ChatColor.WHITE, "TP", "Launches whoever you hit 8 blocks straight up. They take 5 damage and a slam when they land.");
 
         final String key;
@@ -161,7 +163,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         int last = lore.size() - 1;
         lore.set(last, lore.get(last) + hide(type.marker));
         meta.setLore(lore);
-        meta.addEnchant(Enchantment.DURABILITY, 1, true);
+        meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         meta.setUnbreakable(true);
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
@@ -218,19 +220,19 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         switch (type) {
             case LIGHTNING:
                 location.getWorld().strikeLightning(location);
-                location.getWorld().spawnParticle(Particle.CRIT_MAGIC, location.clone().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.1);
+                location.getWorld().spawnParticle(Particle.CRIT, location.clone().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.1);
                 break;
             case EXPLOSION:
                 location.getWorld().createExplosion(location.getX(), location.getY(), location.getZ(), 3.0F, false, false);
                 break;
             case PEARL:
                 Location from = attacker.getLocation();
-                from.getWorld().playSound(from, Sound.ENTITY_ENDERMEN_TELEPORT, 1.0F, 1.0F);
+                from.getWorld().playSound(from, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
                 Location destination = location.clone();
                 destination.setYaw(from.getYaw());
                 destination.setPitch(from.getPitch());
                 attacker.teleport(destination);
-                destination.getWorld().playSound(destination, Sound.ENTITY_ENDERMEN_TELEPORT, 1.0F, 1.0F);
+                destination.getWorld().playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
                 destination.getWorld().spawnParticle(Particle.PORTAL, destination.clone().add(0, 1, 0), 60, 0.5, 1.0, 0.5, 0.5);
                 break;
             case FALL:
@@ -247,17 +249,17 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
 
     private void curse(LivingEntity victim) {
         PotionEffectType[] debuffs = {
-            PotionEffectType.SLOW, PotionEffectType.SLOW_DIGGING, PotionEffectType.CONFUSION,
+            PotionEffectType.SLOWNESS, PotionEffectType.MINING_FATIGUE, PotionEffectType.NAUSEA,
             PotionEffectType.BLINDNESS, PotionEffectType.HUNGER, PotionEffectType.WEAKNESS,
             PotionEffectType.LEVITATION,
-            PotionEffectType.UNLUCK, PotionEffectType.HARM
+            PotionEffectType.UNLUCK, PotionEffectType.INSTANT_DAMAGE
         };
         for (PotionEffectType debuff : debuffs) {
             victim.addPotionEffect(new PotionEffect(debuff, 60, 0), true);
         }
         Location location = victim.getLocation();
         location.getWorld().playSound(location, Sound.ENTITY_WITHER_SPAWN, 0.5F, 1.5F);
-        location.getWorld().spawnParticle(Particle.SMOKE_LARGE, location.clone().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
+        location.getWorld().spawnParticle(Particle.LARGE_SMOKE, location.clone().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.02);
     }
 
     private void tpStrike(Entity victim, Location origin) {
@@ -302,9 +304,9 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             }
         }, 3L);
         if (ground.getType() != Material.AIR) {
-            world.spawnParticle(Particle.BLOCK_CRACK, center, 60, 0.4, 0.1, 0.4, 0.15, new MaterialData(ground.getType(), ground.getData()));
+            world.spawnParticle(Particle.BLOCK, center, 60, 0.4, 0.1, 0.4, 0.15, ground.getBlockData());
         }
-        world.spawnParticle(Particle.EXPLOSION_LARGE, center, 1, 0, 0, 0, 0);
+        world.spawnParticle(Particle.EXPLOSION, center, 1, 0, 0, 0, 0);
         world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.6F, 1.6F);
         if (ground.getType() != Material.AIR) {
             world.playSound(center, Sound.BLOCK_STONE_BREAK, 1.0F, 0.8F);
@@ -315,7 +317,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         for (int i = 0; i < 24; i++) {
             double angle = 2 * Math.PI * i / 24;
             Location point = center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-            world.spawnParticle(Particle.REDSTONE, point, 0, 0.001, 0.35, 1.0, 1.0);
+            world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, new Particle.DustOptions(Color.fromRGB(0, 89, 255), 1.0F));
         }
     }
 
@@ -332,9 +334,9 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
 
     private boolean liftFrom(Entity victim, Location start) {
         int height = 0;
-        while (height < 8 && start.getY() + height + 1 < 255
-                && start.clone().add(0, height + 1, 0).getBlock().getType().isTransparent()
-                && start.clone().add(0, height + 2, 0).getBlock().getType().isTransparent()) {
+        while (height < 8 && start.getY() + height + 1 < start.getWorld().getMaxHeight()
+                && start.clone().add(0, height + 1, 0).getBlock().isPassable()
+                && start.clone().add(0, height + 2, 0).getBlock().isPassable()) {
             height++;
         }
         if (height == 0) {
@@ -345,7 +347,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         destination.setPitch(victim.getLocation().getPitch());
         victim.teleport(destination);
         victim.setFallDistance(0.0F);
-        destination.getWorld().playSound(destination, Sound.ENTITY_FIREWORK_LAUNCH, 1.0F, 1.0F);
+        destination.getWorld().playSound(destination, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0F, 1.0F);
         destination.getWorld().spawnParticle(Particle.CLOUD, start.clone().add(0, 1, 0), 40, 0.4, 0.5, 0.4, 0.1);
         return true;
     }
@@ -537,7 +539,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         lore.add(ChatColor.GRAY + "Powers it for 3 seconds, then consumes this pass."
                 + hide(PASS_MARKER));
         meta.setLore(lore);
-        meta.addEnchant(Enchantment.DURABILITY, 1, true);
+        meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         item.setItemMeta(meta);
         return item;
     }
@@ -551,7 +553,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         lore.add(ChatColor.GRAY + "Place it, then right-click it with a pass."
                 + hide(PASS_BUTTON_MARKER));
         meta.setLore(lore);
-        meta.addEnchant(Enchantment.DURABILITY, 1, true);
+        meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         item.setItemMeta(meta);
         return item;
     }
@@ -627,7 +629,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
     }
 
     private boolean isButton(Material material) {
-        return material == Material.STONE_BUTTON || material == Material.WOOD_BUTTON;
+        return Tag.BUTTONS.isTagged(material);
     }
 
     private String buttonKey(Location location) {
@@ -662,32 +664,10 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
     }
 
     private void setButtonPowered(Block block, boolean powered) {
-        MaterialData data = block.getState().getData();
-        if (data instanceof Button) {
-            Button button = (Button) data;
-            button.setPowered(powered);
-            block.setData(button.getData(), true);
-            notifyRedstone(block, block.getRelative(button.getAttachedFace()));
-        }
-    }
-
-    // Changing block data does not notify neighbours, so send the same updates vanilla buttons do.
-    private void notifyRedstone(Block button, Block attached) {
-        try {
-            String version = getServer().getClass().getPackage().getName().split("\\.")[3];
-            Class<?> craftWorld = Class.forName("org.bukkit.craftbukkit." + version + ".CraftWorld");
-            Class<?> magic = Class.forName("org.bukkit.craftbukkit." + version + ".util.CraftMagicNumbers");
-            Class<?> posClass = Class.forName("net.minecraft.server." + version + ".BlockPosition");
-            Class<?> nmsBlock = Class.forName("net.minecraft.server." + version + ".Block");
-            Object world = craftWorld.getMethod("getHandle").invoke(button.getWorld());
-            Object block = magic.getMethod("getBlock", Material.class).invoke(null, button.getType());
-            java.lang.reflect.Method apply = world.getClass().getMethod("applyPhysics", posClass, nmsBlock, boolean.class);
-            java.lang.reflect.Constructor<?> pos = posClass.getConstructor(int.class, int.class, int.class);
-            for (Block target : new Block[] {button, attached}) {
-                apply.invoke(world, pos.newInstance(target.getX(), target.getY(), target.getZ()), block, false);
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            getLogger().warning("Could not send redstone update for pass button: " + exception);
+        BlockData data = block.getBlockData();
+        if (data instanceof Powerable) {
+            ((Powerable) data).setPowered(powered);
+            block.setBlockData(data, true);
         }
     }
 

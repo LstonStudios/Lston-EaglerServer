@@ -20,9 +20,12 @@ def list_archives():
     if not BACKUPS.is_dir():
         return []
     return sorted(
-        path
-        for path in BACKUPS.iterdir()
-        if path.is_file() and is_archive(path)
+        (
+            path
+            for path in BACKUPS.iterdir()
+            if path.is_file() and is_archive(path)
+        ),
+        key=lambda path: (-path.stat().st_mtime_ns, path.name),
     )
 
 

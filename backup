@@ -78,24 +78,44 @@ if [[ "$server_running" == true ]]; then
   exit 1
 fi
 
-worlds=(
-  "$world_name"
-  "${world_name}_nether"
-  "${world_name}_the_end"
-)
-region_paths=(
-  "$world_name/region"
-  "${world_name}_nether/DIM-1/region"
-  "${world_name}_the_end/DIM1/region"
-)
-for index in "${!worlds[@]}"; do
-  world="${worlds[$index]}"
-  region_path="${region_paths[$index]}"
-  if [[ ! -f "$SERVER/$world/level.dat" || ! -d "$SERVER/$region_path" ]]; then
-    echo "World folder is missing level.dat or its region directory ($region_path): $SERVER/$world" >&2
+modern_overworld_region="$world_name/dimensions/minecraft/overworld/region"
+if [[ -d "$SERVER/$modern_overworld_region" ]]; then
+  worlds=("$world_name")
+  region_paths=(
+    "$world_name/dimensions/minecraft/overworld/region"
+    "$world_name/dimensions/minecraft/the_nether/region"
+    "$world_name/dimensions/minecraft/the_end/region"
+  )
+  if [[ ! -f "$SERVER/$world_name/level.dat" ]]; then
+    echo "World folder is missing level.dat: $SERVER/$world_name" >&2
     exit 1
   fi
-done
+  for region_path in "${region_paths[@]}"; do
+    if [[ ! -d "$SERVER/$region_path" ]]; then
+      echo "World folder is missing a dimension region directory: $SERVER/$region_path" >&2
+      exit 1
+    fi
+  done
+else
+  worlds=(
+    "$world_name"
+    "${world_name}_nether"
+    "${world_name}_the_end"
+  )
+  region_paths=(
+    "$world_name/region"
+    "${world_name}_nether/DIM-1/region"
+    "${world_name}_the_end/DIM1/region"
+  )
+  for index in "${!worlds[@]}"; do
+    world="${worlds[$index]}"
+    region_path="${region_paths[$index]}"
+    if [[ ! -f "$SERVER/$world/level.dat" || ! -d "$SERVER/$region_path" ]]; then
+      echo "World folder is missing level.dat or its region directory ($region_path): $SERVER/$world" >&2
+      exit 1
+    fi
+  done
+fi
 
 mkdir -p "$BACKUPS"
 archive="$BACKUPS/$name.tar.gz"

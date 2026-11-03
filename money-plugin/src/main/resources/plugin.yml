@@ -1,5 +1,6 @@
 name: Money
 version: 1.0.0
+api-version: '26.2'
 main: net.lstonstudios.money.MoneyPlugin
 author: LstonStudios
 description: Earn money by mining and killing, then spend it in shops.
@@ -22,12 +23,15 @@ commands:
     usage: /sinfo
   cshop:
     aliases: [moneyshop, customshop]
-    description: Open a shop (1-5). Admins edit it; members buy from it.
+    description: Edit or preview an item shop (1-5). Admins edit it; members buy from it.
     usage: /cshop <1-5> [view|section <color> <name>|rename <name>|setblock|delblock]
   shop:
+    description: Buy individual items from the shop (admins can edit with /cshop).
+    usage: /shop [1-5]
+  kit:
     aliases: [kitshop, kits]
     description: Buy shulker box kits full of gear, weapons and food (1-5).
-    usage: /shop <1-5>
+    usage: /kit [1-5]
   login:
     description: Admins sign in (or set a password the first time).
     usage: /login <password> [new-password]

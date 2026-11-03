@@ -30,6 +30,13 @@ To start either server separately instead, use `startserver 1` for the gateway
 or `startserver 2` for the game server.
 <br>
 Now go to the ports area and forward (and make public) port `8081`
+The port's homepage serves the EaglerCraft 26.2 client (`web/EaglerCraft-26.2.html`);
+the previous 1.12 client page remains at `/index-1.12.html` (it can no longer join).
+The stack is Paper 26.2 (Java 25, port 25566) behind Velocity 4.3.1 with
+EaglerXServer 1.1.1 (port 25565). `bin/web-gateway.js` serves `web/` on 8081 and
+tunnels WebSocket connections to port 25565. Old 1.12 plugins are in
+`server/legacy-plugins/` and the old Eagler gateway jars in `bungee/old-plugins/`;
+they don't load on 26.2.
 <br>
 Load up the client! When you are in, copy the link, paste it in the add server section, replace https:// with wss:// and join!
 Your eaglercraft server is setup!
@@ -73,15 +80,17 @@ not being changed while copied.
    are not overwritten. The `backup`, `backups`, `delbackup`,
    `loadbackup`, and `restorebackup` commands are added to the workspace terminal PATH. Rebuild
    or reopen the dev container after changing its configuration, then open a
-   new terminal. The backup command validates the Overworld `region/` folder
-   and the Nether/End folders' `DIM-1/region/` and `DIM1/region/` paths.
+   new terminal. The backup command validates region data for the Overworld,
+   Nether, and End in either the legacy separate-folder layout or the modern
+   `dimensions/minecraft/` layout.
 3. Check that the archive was created:
 
    ```sh
    backups
    ```
 
-   `backups` hides the automatic `pre-restore-*` folders; see
+   Backup archives are listed newest to oldest by `backups`, `delbackup`, and
+   `loadbackup`. `backups` hides the automatic `pre-restore-*` folders; see
    [Recover a pre-restore folder](#recover-a-pre-restore-folder).
 
 4. To remove backup archives, run `delbackup`. Choose one or more menu codes
@@ -96,11 +105,13 @@ not being changed while copied.
 
 1. Stop the Minecraft server.
 2. Put the `.zip`, `.tar`, `.tar.gz`, or `.tgz` backup in the repository's
-   `backups/` folder. The archive must contain the world folder with both
-   `level.dat` and `region/`; include sibling `<world>_nether` and
-   `<world>_the_end` folders if you want to restore those dimensions too.
+   `backups/` folder. The archive must contain a world folder with `level.dat`
+   and Overworld region data (`region/` in the legacy layout or
+   `dimensions/minecraft/overworld/region/` in the modern layout). Include
+   sibling `<world>_nether` and `<world>_the_end` folders in the legacy layout;
+   modern dimension data is stored inside the world folder.
 3. From the repository's top-level directory, run the loader and choose the
-   listed backup:
+   listed backup (newest first):
 
    ```sh
    loadbackup
@@ -126,7 +137,7 @@ To make a saved `pre-restore-*` folder loadable, run:
 restorebackup
 ```
 
-Choose a folder from the list (or pass one, e.g.
+The folder list is newest first. Choose a folder from the list (or pass one, e.g.
 `restorebackup backups/pre-restore-YYYYMMDD-HHMMSS-ffffff`). This creates
 `backups/restored-YYYYMMDD-HHMMSS-ffffff.tar.gz` and leaves the original folder
 untouched. The archive then shows up in `backups` and can be loaded with
@@ -138,6 +149,13 @@ matches, it stops instead of guessing. Do not extract an archive over the
 live server folders manually.
 
 ## Plugins
+
+All custom plugins (CustomAbility, CustomGun, CustomItems, CustomTNT,
+CustomWeapons, Money, SpawnMobs, UsernameEffects) are ported to the Paper 26.2
+API and built with `gradle -p <name>-plugin build`; copy the jar from
+`build/libs/` into `server/plugins/`. WorldEdit 7.4.6 and WorldGuard 7.0.19 are
+used instead of the 6.x versions. The custom Mace and Spear (Paper has native
+ones) and Verity are not ported; `/weapon` gives only the Wind Burst.
 
 ### Basic plugins
 

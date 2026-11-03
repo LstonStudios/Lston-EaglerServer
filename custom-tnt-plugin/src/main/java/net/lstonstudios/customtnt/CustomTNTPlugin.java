@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.GameMode;
@@ -44,7 +45,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.material.MaterialData;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
@@ -52,11 +53,13 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldguard.LocalPlayer;
-import com.sk89q.worldguard.protection.flags.DefaultFlag;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
-import com.sk89q.worldguard.protection.managers.RegionManager;
+import com.sk89q.worldguard.protection.regions.RegionQuery;
 
 public final class CustomTNTPlugin extends JavaPlugin implements Listener {
 
@@ -182,7 +185,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             startMiningTunnel(location, player);
             return true;
         }
-        Entity spawned = location.getWorld().spawnEntity(location, EntityType.PRIMED_TNT);
+        Entity spawned = location.getWorld().spawnEntity(location, EntityType.TNT);
         if (!(spawned instanceof TNTPrimed)) {
             getLogger().severe("Could not spawn custom TNT entity for " + type.key + ".");
             return false;
@@ -218,9 +221,9 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         spawnBlockBurst(center, type.effectBlock, 100, 2.5, 1.5, 2.5);
         if (type == TNTType.SLIME) {
             convertSurfaceToSlime(center, settings.size);
-            center.getWorld().playSound(center, Sound.BLOCK_SLIME_PLACE, 2.0F, 0.7F);
-            animateShockwave(center, settings.size, Particle.SLIME, Particle.VILLAGER_HAPPY);
-            spawnBurst(center, Particle.SLIME, 80, 2.2, 1.2, 2.2);
+            center.getWorld().playSound(center, Sound.BLOCK_SLIME_BLOCK_PLACE, 2.0F, 0.7F);
+            animateShockwave(center, settings.size, Particle.ITEM_SLIME, Particle.HAPPY_VILLAGER);
+            spawnBurst(center, Particle.ITEM_SLIME, 80, 2.2, 1.2, 2.2);
             return;
         }
 
@@ -230,8 +233,8 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             digMiningTunnel(center, Math.max(4, Math.min(settings.size, 10)));
             world.playSound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.5F, 0.6F);
             spawnBurst(center, Particle.CRIT, 45, 1.5, 1.0, 1.5);
-            spawnBurst(center, Particle.FIREWORKS_SPARK, 70, 2.0, 1.0, 2.0);
-            animateShockwave(center, settings.size, Particle.CRIT, Particle.FIREWORKS_SPARK);
+            spawnBurst(center, Particle.FIREWORK, 70, 2.0, 1.0, 2.0);
+            animateShockwave(center, settings.size, Particle.CRIT, Particle.FIREWORK);
             return;
         }
 
@@ -249,57 +252,57 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
 
         if (type == TNTType.NUKE) {
             world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 4.0F, 0.5F);
-            animateShockwave(center, settings.size, Particle.EXPLOSION_HUGE, Particle.FIREWORKS_SPARK);
-            spawnBurst(center, Particle.FIREWORKS_SPARK, 120, 3.0, 1.5, 3.0);
+            animateShockwave(center, settings.size, Particle.EXPLOSION_EMITTER, Particle.FIREWORK);
+            spawnBurst(center, Particle.FIREWORK, 120, 3.0, 1.5, 3.0);
         } else if (type == TNTType.FIRE) {
             world.playSound(center, Sound.ITEM_FIRECHARGE_USE, 3.0F, 0.7F);
             spawnBurst(center, Particle.FLAME, 80, 2.0, 1.0, 2.0);
             spawnBurst(center, Particle.LAVA, 20, 1.5, 0.8, 1.5);
-            spawnBurst(center, Particle.SMOKE_LARGE, 40, 1.8, 1.2, 1.8);
-            animateShockwave(center, settings.size, Particle.FLAME, Particle.SMOKE_LARGE);
+            spawnBurst(center, Particle.LARGE_SMOKE, 40, 1.8, 1.2, 1.8);
+            animateShockwave(center, settings.size, Particle.FLAME, Particle.LARGE_SMOKE);
         } else if (type == TNTType.BLACK_HOLE) {
             pullEntitiesIn(center, settings.size / 2.0);
             world.playSound(center, Sound.BLOCK_PORTAL_TRAVEL, 3.0F, 0.4F);
-            animateShockwave(center, settings.size, Particle.PORTAL, Particle.SMOKE_LARGE);
+            animateShockwave(center, settings.size, Particle.PORTAL, Particle.LARGE_SMOKE);
             spawnBurst(center, Particle.PORTAL, 120, 3.0, 1.5, 3.0);
-            spawnBurst(center, Particle.SUSPENDED_DEPTH, 80, 2.0, 1.0, 2.0);
+            spawnBurst(center, Particle.UNDERWATER, 80, 2.0, 1.0, 2.0);
         } else if (type == TNTType.X_RAY) {
             mineXRayArea(center, 10);
             world.playSound(center, Sound.BLOCK_STONE_BREAK, 1.8F, 0.7F);
             spawnBurst(center, Particle.CRIT, 70, 2.6, 1.2, 2.6);
-            animateShockwave(center, settings.size, Particle.CRIT, Particle.SPELL_INSTANT);
+            animateShockwave(center, settings.size, Particle.CRIT, Particle.INSTANT_EFFECT);
         } else if (type == TNTType.FIREWORK) {
             launchFireworks(center, Math.max(1, Math.min(60, settings.size)));
-            world.playSound(center, Sound.ENTITY_FIREWORK_LAUNCH, 3.0F, 1.0F);
-            spawnBurst(center, Particle.FIREWORKS_SPARK, 120, 2.0, 1.5, 2.0);
+            world.playSound(center, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 3.0F, 1.0F);
+            spawnBurst(center, Particle.FIREWORK, 120, 2.0, 1.5, 2.0);
         } else if (type == TNTType.POOP) {
             spawnPoop(center, Math.min(10, settings.size));
-            world.playSound(center, Sound.BLOCK_SLIME_PLACE, 2.5F, 0.5F);
+            world.playSound(center, Sound.BLOCK_SLIME_BLOCK_PLACE, 2.5F, 0.5F);
             spawnBlockBurst(center, Material.DIRT, 150, 3.0, 1.5, 3.0);
-            animateShockwave(center, settings.size, Particle.SMOKE_NORMAL, Particle.VILLAGER_ANGRY);
+            animateShockwave(center, settings.size, Particle.SMOKE, Particle.ANGRY_VILLAGER);
         } else if (type == TNTType.MOB) {
             spawnMobs(center, Math.min(10, settings.size));
-            world.playSound(center, Sound.ENTITY_EVOCATION_ILLAGER_CAST_SPELL, 2.5F, 0.9F);
-            spawnBurst(center, Particle.SPELL_WITCH, 120, 3.0, 1.5, 3.0);
+            world.playSound(center, Sound.ENTITY_EVOKER_CAST_SPELL, 2.5F, 0.9F);
+            spawnBurst(center, Particle.WITCH, 120, 3.0, 1.5, 3.0);
             spawnBurst(center, Particle.CLOUD, 60, 2.5, 1.0, 2.5);
-            animateShockwave(center, settings.size, Particle.SPELL_WITCH, Particle.CLOUD);
+            animateShockwave(center, settings.size, Particle.WITCH, Particle.CLOUD);
         } else if (type == TNTType.BOSS) {
             spawnBosses(center);
-            world.playSound(center, Sound.ENTITY_ENDERDRAGON_GROWL, 3.0F, 0.8F);
+            world.playSound(center, Sound.ENTITY_ENDER_DRAGON_GROWL, 3.0F, 0.8F);
             spawnBurst(center, Particle.DRAGON_BREATH, 120, 3.0, 1.5, 3.0);
-            spawnBurst(center, Particle.SMOKE_LARGE, 80, 2.5, 1.5, 2.5);
-            animateShockwave(center, settings.size, Particle.DRAGON_BREATH, Particle.SMOKE_LARGE);
+            spawnBurst(center, Particle.LARGE_SMOKE, 80, 2.5, 1.5, 2.5);
+            animateShockwave(center, settings.size, Particle.DRAGON_BREATH, Particle.LARGE_SMOKE);
         } else if (type == TNTType.RDM) {
             randomizeArea(center, Math.min(10, settings.size));
-            world.playSound(center, Sound.ENTITY_ENDERMEN_TELEPORT, 2.0F, 1.5F);
-            spawnBurst(center, Particle.SPELL_MOB, 120, 3.0, 1.5, 3.0);
+            world.playSound(center, Sound.ENTITY_ENDERMAN_TELEPORT, 2.0F, 1.5F);
+            spawnBurst(center, Particle.ENTITY_EFFECT, 120, 3.0, 1.5, 3.0);
             spawnBurst(center, Particle.NOTE, 40, 2.5, 1.5, 2.5);
-            animateShockwave(center, settings.size, Particle.SPELL_MOB, Particle.FIREWORKS_SPARK);
+            animateShockwave(center, settings.size, Particle.ENTITY_EFFECT, Particle.FIREWORK);
         } else if (type == TNTType.SUN) {
             lightSunArea(center, 10, 60);
             world.playSound(center, Sound.BLOCK_PORTAL_TRAVEL, 2.0F, 1.2F);
             spawnBurst(center, Particle.END_ROD, 90, 2.8, 1.4, 2.8);
-            animateShockwave(center, settings.size, Particle.END_ROD, Particle.FIREWORKS_SPARK);
+            animateShockwave(center, settings.size, Particle.END_ROD, Particle.FIREWORK);
         }
     }
 
@@ -314,12 +317,9 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private boolean isGuardedBlock(Block block) {
-        RegionManager regions = WorldGuardPlugin.inst().getRegionManager(block.getWorld());
-        if (regions == null) {
-            return false;
-        }
-        StateFlag.State state = regions.getApplicableRegions(block.getLocation()).queryState(protectionActor,
-                DefaultFlag.BUILD, DefaultFlag.BLOCK_BREAK, DefaultFlag.TNT);
+        RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
+        StateFlag.State state = query.queryState(BukkitAdapter.adapt(block.getLocation()), protectionActor,
+                Flags.BUILD, Flags.BLOCK_BREAK, Flags.TNT);
         return state == StateFlag.State.DENY;
     }
 
@@ -329,15 +329,13 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         private final int x;
         private final int y;
         private final int z;
-        private final int id;
-        private final byte data;
+        private final String data;
 
-        private BlockSnapshot(String world, int x, int y, int z, int id, byte data) {
+        private BlockSnapshot(String world, int x, int y, int z, String data) {
             this.world = world;
             this.x = x;
             this.y = y;
             this.z = z;
-            this.id = id;
             this.data = data;
         }
 
@@ -359,7 +357,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             return;
         }
         journal.put(key, new BlockSnapshot(world, block.getX(), block.getY(), block.getZ(),
-                block.getTypeId(), block.getData()));
+                block.getBlockData().getAsString()));
         if (journal.size() > JOURNAL_LIMIT) {
             Iterator<String> oldest = journal.keySet().iterator();
             oldest.next();
@@ -393,7 +391,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private File journalFile() {
-        return new File(getDataFolder(), "journal.dat");
+        return new File(getDataFolder(), "journal-v2.dat");
     }
 
     private void saveJournal() {
@@ -401,7 +399,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             return;
         }
         File target = journalFile();
-        File temp = new File(getDataFolder(), "journal.dat.tmp");
+        File temp = new File(getDataFolder(), "journal-v2.dat.tmp");
         getDataFolder().mkdirs();
         try (DataOutputStream out = new DataOutputStream(new java.io.BufferedOutputStream(new FileOutputStream(temp)))) {
             out.writeInt(journal.size());
@@ -410,8 +408,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 out.writeInt(snapshot.x);
                 out.writeInt(snapshot.y);
                 out.writeInt(snapshot.z);
-                out.writeInt(snapshot.id);
-                out.writeByte(snapshot.data);
+                out.writeUTF(snapshot.data);
             }
         } catch (IOException exception) {
             getLogger().warning("Could not save the Anti-TNT journal: " + exception.getMessage());
@@ -436,7 +433,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             int count = in.readInt();
             for (int i = 0; i < count; i++) {
                 BlockSnapshot snapshot = new BlockSnapshot(in.readUTF(), in.readInt(), in.readInt(), in.readInt(),
-                        in.readInt(), in.readByte());
+                        in.readUTF());
                 journal.put(snapshot.key(), snapshot);
             }
         } catch (IOException exception) {
@@ -475,8 +472,8 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         }
         world.playSound(center, Sound.ENTITY_PLAYER_LEVELUP, 3.0F, 0.8F);
         spawnBurst(center, Particle.END_ROD, 120, 2.5, 1.5, 2.5);
-        spawnBurst(center, Particle.VILLAGER_HAPPY, 60, 2.5, 1.5, 2.5);
-        animateShockwave(center, radius, Particle.END_ROD, Particle.VILLAGER_HAPPY);
+        spawnBurst(center, Particle.HAPPY_VILLAGER, 60, 2.5, 1.5, 2.5);
+        animateShockwave(center, radius, Particle.END_ROD, Particle.HAPPY_VILLAGER);
 
         final int total = found.size();
         new BukkitRunnable() {
@@ -494,10 +491,11 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     if (journal.remove(snapshot.key()) == null) {
                         continue;
                     }
-                    if (block.getTypeId() != snapshot.id || block.getData() != snapshot.data) {
-                        block.setTypeIdAndData(snapshot.id, snapshot.data, false);
+                    BlockData original = Bukkit.createBlockData(snapshot.data);
+                    if (!block.getBlockData().equals(original)) {
+                        block.setBlockData(original, false);
                         if (processed % 6 == 0) {
-                            world.spawnParticle(Particle.VILLAGER_HAPPY, block.getLocation().add(0.5, 0.5, 0.5),
+                            world.spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add(0.5, 0.5, 0.5),
                                     2, 0.3, 0.3, 0.3, 0.0);
                         }
                     }
@@ -563,7 +561,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         org.bukkit.FireworkEffect.Type[] shapes = org.bukkit.FireworkEffect.Type.values();
         for (int i = 0; i < count; i++) {
             org.bukkit.entity.Firework firework = (org.bukkit.entity.Firework) world.spawnEntity(
-                    center.clone().add(0.0, 0.5, 0.0), EntityType.FIREWORK);
+                    center.clone().add(0.0, 0.5, 0.0), EntityType.FIREWORK_ROCKET);
             org.bukkit.inventory.meta.FireworkMeta meta = firework.getFireworkMeta();
             meta.addEffect(org.bukkit.FireworkEffect.builder()
                     .with(shapes[random.nextInt(shapes.length)])
@@ -614,12 +612,11 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                             continue;
                         }
                         remember(block);
-                        block.setTypeIdAndData(random.nextBoolean() ? Material.WOOL.getId()
-                                : Material.CONCRETE.getId(), (byte) 12, false);
+                        block.setType(random.nextBoolean() ? Material.BROWN_WOOL : Material.BROWN_CONCRETE, false);
                     }
                 }
             }
-            world.spawnParticle(Particle.SMOKE_LARGE, new Location(world, x + 0.5, ground + 2.0, z + 0.5),
+            world.spawnParticle(Particle.LARGE_SMOKE, new Location(world, x + 0.5, ground + 2.0, z + 0.5),
                     10, 0.4, 0.4, 0.4, 0.02);
         }
         for (int i = 0; i < radius * 6; i++) {
@@ -635,8 +632,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 if (!isGuardedBlock(above) && ground.getType().isSolid() && !above.getType().isSolid()
                         && !(ground.getState() instanceof InventoryHolder)) {
                     remember(above);
-                    above.setTypeIdAndData(random.nextBoolean() ? Material.WOOL.getId()
-                            : Material.CONCRETE.getId(), (byte) 12, false);
+                    above.setType(random.nextBoolean() ? Material.BROWN_WOOL : Material.BROWN_CONCRETE, false);
                     break;
                 }
             }
@@ -665,7 +661,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 spot = center.clone().add(0.0, 0.5, 0.0);
             }
             world.spawnEntity(spot, MOB_TYPES[random.nextInt(MOB_TYPES.length)]);
-            world.spawnParticle(Particle.SPELL_WITCH, spot, 8, 0.3, 0.5, 0.3, 0.0);
+            world.spawnParticle(Particle.WITCH, spot, 8, 0.3, 0.5, 0.3, 0.0);
         }
     }
 
@@ -701,10 +697,10 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             addBossEffect(boss, org.bukkit.potion.PotionEffectType.FIRE_RESISTANCE, 0);
             addBossEffect(boss, org.bukkit.potion.PotionEffectType.REGENERATION, 1);
             if (giant) {
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.INCREASE_DAMAGE, 1);
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.DAMAGE_RESISTANCE, 1);
+                addBossEffect(boss, org.bukkit.potion.PotionEffectType.STRENGTH, 1);
+                addBossEffect(boss, org.bukkit.potion.PotionEffectType.RESISTANCE, 1);
                 addBossEffect(boss, org.bukkit.potion.PotionEffectType.SPEED, 1);
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.JUMP, 1);
+                addBossEffect(boss, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 1);
                 addBossEffect(boss, org.bukkit.potion.PotionEffectType.NIGHT_VISION, 0);
             }
             boss.setHealth(boss.getMaxHealth());
@@ -745,7 +741,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                             for (int k = 0; k < 8; k++) {
                                 double a = Math.PI * 2.0 * k / 8 + tick * 0.15 + h * 0.4;
                                 Location p = base.clone().add(Math.cos(a) * 2.2, h, Math.sin(a) * 2.2);
-                                base.getWorld().spawnParticle(Particle.REDSTONE, p, 0, 1.0, 0.0, 0.0, 1.0);
+                                base.getWorld().spawnParticle(Particle.DUST, p, 1, 0, 0, 0, 0, new Particle.DustOptions(org.bukkit.Color.RED, 1.0F));
                             }
                         }
                     }
@@ -872,16 +868,20 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private static final Material[] RANDOM_BLOCKS = {
-        Material.STONE, Material.DIRT, Material.GRASS, Material.COBBLESTONE, Material.WOOD,
+        Material.STONE, Material.DIRT, Material.GRASS_BLOCK, Material.COBBLESTONE, Material.OAK_PLANKS,
         Material.SAND, Material.GRAVEL, Material.GOLD_BLOCK, Material.IRON_BLOCK, Material.DIAMOND_BLOCK,
         Material.EMERALD_BLOCK, Material.LAPIS_BLOCK, Material.REDSTONE_BLOCK, Material.COAL_BLOCK,
-        Material.GLASS, Material.BRICK, Material.BOOKSHELF, Material.MOSSY_COBBLESTONE,
+        Material.GLASS, Material.BRICKS, Material.BOOKSHELF, Material.MOSSY_COBBLESTONE,
         Material.OBSIDIAN, Material.NETHERRACK, Material.SOUL_SAND, Material.GLOWSTONE,
         Material.SEA_LANTERN, Material.PRISMARINE, Material.QUARTZ_BLOCK, Material.PURPUR_BLOCK,
-        Material.SLIME_BLOCK, Material.HAY_BLOCK, Material.MELON_BLOCK, Material.PUMPKIN,
-        Material.CLAY, Material.ICE, Material.PACKED_ICE, Material.SNOW_BLOCK, Material.NETHER_BRICK,
-        Material.END_BRICKS, Material.WOOL, Material.STAINED_CLAY, Material.STAINED_GLASS,
-        Material.LOG, Material.SANDSTONE, Material.RED_SANDSTONE, Material.MAGMA, Material.BONE_BLOCK
+        Material.SLIME_BLOCK, Material.HAY_BLOCK, Material.MELON, Material.PUMPKIN,
+        Material.CLAY, Material.ICE, Material.PACKED_ICE, Material.SNOW_BLOCK, Material.NETHER_BRICKS,
+        Material.END_STONE_BRICKS, Material.WHITE_WOOL, Material.WHITE_TERRACOTTA, Material.WHITE_STAINED_GLASS,
+        Material.OAK_LOG, Material.SANDSTONE, Material.RED_SANDSTONE, Material.MAGMA_BLOCK, Material.BONE_BLOCK
+    };
+
+    private static final Material[] LOG_TYPES = {
+        Material.OAK_LOG, Material.SPRUCE_LOG, Material.BIRCH_LOG, Material.JUNGLE_LOG
     };
 
     private void randomizeArea(Location center, int radius) {
@@ -904,15 +904,15 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                         continue;
                     }
                     Material picked = RANDOM_BLOCKS[random.nextInt(RANDOM_BLOCKS.length)];
-                    byte data = 0;
-                    if (picked == Material.WOOL || picked == Material.STAINED_CLAY
-                            || picked == Material.STAINED_GLASS) {
-                        data = (byte) random.nextInt(16);
-                    } else if (picked == Material.LOG) {
-                        data = (byte) random.nextInt(4);
+                    if (picked == Material.WHITE_WOOL || picked == Material.WHITE_TERRACOTTA
+                            || picked == Material.WHITE_STAINED_GLASS) {
+                        String suffix = picked.name().substring("WHITE".length());
+                        picked = Material.valueOf(DyeColor.values()[random.nextInt(16)].name() + suffix);
+                    } else if (picked == Material.OAK_LOG) {
+                        picked = LOG_TYPES[random.nextInt(LOG_TYPES.length)];
                     }
                     remember(block);
-                    block.setTypeIdAndData(picked.getId(), data, false);
+                    block.setType(picked, false);
                 }
             }
         }
@@ -950,10 +950,9 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                         }
                         Block block = world.getBlockAt(cx + dz * side, y, cz + dx * side);
                         Material material = block.getType();
-                        if (isGuardedBlock(block) || material == Material.AIR || material == Material.BEDROCK
+                        if (isGuardedBlock(block) || material.isAir() || material == Material.BEDROCK
                                 || material == Material.BARRIER || material == Material.WATER
-                                || material == Material.STATIONARY_WATER || material == Material.LAVA
-                                || material == Material.STATIONARY_LAVA
+                                || material == Material.LAVA
                                 || block.getState() instanceof InventoryHolder) {
                             continue;
                         }
@@ -962,10 +961,10 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     }
                 }
                 Location head = new Location(world, cx + 0.5, startY + 0.5, cz + 0.5);
-                world.spawnParticle(Particle.EXPLOSION_LARGE, head, 1);
+                world.spawnParticle(Particle.EXPLOSION, head, 1);
                 world.spawnParticle(Particle.CRIT, head, 12, 1.0, 1.0, 1.0, 0.1);
-                world.spawnParticle(Particle.BLOCK_CRACK, head, 20, 1.0, 1.0, 1.0,
-                        new MaterialData(Material.GOLD_BLOCK));
+                world.spawnParticle(Particle.BLOCK, head, 20, 1.0, 1.0, 1.0,
+                        Material.GOLD_BLOCK.createBlockData());
                 if (step % 2 == 0) {
                     world.playSound(head, Sound.ENTITY_GENERIC_EXPLODE, 0.8F, 1.4F);
                 }
@@ -987,7 +986,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     private void announceNuke(final TNTPrimed tnt) {
         for (Player player : playersNear(tnt.getLocation(), 100)) {
             player.sendTitle(ChatColor.DARK_RED + "" + ChatColor.BOLD + "NUKE TNT", ChatColor.RED + "INCOMING", 5, 40, 10);
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_PLING, 2.0F, 0.5F);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 2.0F, 0.5F);
         }
         getServer().getScheduler().runTaskLater(this, new Runnable() {
             @Override
@@ -1010,7 +1009,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 2.0F, 0.6F);
             Location eye = player.getEyeLocation();
             Location ahead = eye.clone().add(eye.getDirection().multiply(2.0));
-            player.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, ahead, 6, 0.8, 0.6, 0.8, 0.0);
+            player.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, ahead, 6, 0.8, 0.6, 0.8, 0.0);
             nukeParticles(eye, 6.0, 120);
         }
         nukeParticles(center.clone().add(0, 1, 0), 15.0, 400);
@@ -1024,7 +1023,8 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             double[] c = colors[i % 3];
             Location point = center.clone().add((random.nextDouble() * 2 - 1) * spread,
                     (random.nextDouble() * 2 - 1) * spread / 2, (random.nextDouble() * 2 - 1) * spread);
-            world.spawnParticle(Particle.REDSTONE, point, 0, c[0], c[1], c[2], 1.0);
+            world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0,
+                    new Particle.DustOptions(org.bukkit.Color.fromRGB((int) (c[0] * 255), (int) (c[1] * 255), (int) (c[2] * 255)), 1.0F));
         }
         world.spawnParticle(Particle.FLAME, center, count, spread, spread / 2, spread, 0.08);
         world.spawnParticle(Particle.LAVA, center, count / 4, spread, spread / 2, spread, 0.0);
@@ -1039,21 +1039,21 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     return;
                 }
                 Particle particle = type == TNTType.FIRE ? Particle.FLAME
-                        : type == TNTType.SLIME ? Particle.SLIME
+                        : type == TNTType.SLIME ? Particle.ITEM_SLIME
                         : type == TNTType.BLACK_HOLE ? Particle.PORTAL
-                        : type == TNTType.MINING ? Particle.CRIT : Particle.SMOKE_LARGE;
+                        : type == TNTType.MINING ? Particle.CRIT : Particle.LARGE_SMOKE;
                 tnt.getWorld().spawnParticle(particle, tnt.getLocation().add(0.0, 0.35, 0.0),
-                        3, 0.12, 0.12, 0.12, 0.01);
-                tnt.getWorld().spawnParticle(Particle.BLOCK_CRACK, tnt.getLocation().add(0.0, 0.25, 0.0),
-                        6, 0.18, 0.18, 0.18, new MaterialData(type.effectBlock));
+                        3, 0.12, 0.12, 0.12, 0.01, particleData(particle));
+                tnt.getWorld().spawnParticle(Particle.BLOCK, tnt.getLocation().add(0.0, 0.25, 0.0),
+                        6, 0.18, 0.18, 0.18, type.effectBlock.createBlockData());
             }
         }.runTaskTimer(this, 0L, 5L);
     }
 
     private void spawnBlockBurst(Location center, Material material, int count,
             double offsetX, double offsetY, double offsetZ) {
-        center.getWorld().spawnParticle(Particle.BLOCK_CRACK, center, count,
-                offsetX, offsetY, offsetZ, new MaterialData(material));
+        center.getWorld().spawnParticle(Particle.BLOCK, center, count,
+                offsetX, offsetY, offsetZ, material.createBlockData());
     }
 
     private void digMiningTunnel(final Location center, final int depth) {
@@ -1075,7 +1075,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                         int z = cz + (dirZ == 0 ? side : dirZ * step);
                         Block block = world.getBlockAt(x, y, z);
                         Material material = block.getType();
-                        if (material == Material.AIR || material == Material.BEDROCK
+                        if (material.isAir() || material == Material.BEDROCK
                                 || material == Material.BARRIER || material == Material.WATER
                                 || material == Material.LAVA || block.getState() instanceof InventoryHolder) {
                             continue;
@@ -1098,14 +1098,14 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 while (processed < 18 && index[0] < targets.size()) {
                     Block block = targets.get(index[0]++);
                     Material material = block.getType();
-                    if (isGuardedBlock(block) || material == Material.AIR || material == Material.BEDROCK
+                    if (isGuardedBlock(block) || material.isAir() || material == Material.BEDROCK
                             || material == Material.BARRIER) {
                         continue;
                     }
                     remember(block);
                     block.setType(Material.AIR);
-                    world.spawnParticle(Particle.BLOCK_CRACK, block.getLocation().add(0.5, 0.5, 0.5), 8,
-                            0.2, 0.2, 0.2, 0.02, new MaterialData(material));
+                    world.spawnParticle(Particle.BLOCK, block.getLocation().add(0.5, 0.5, 0.5), 8,
+                            0.2, 0.2, 0.2, 0.02, material.createBlockData());
                     processed++;
                 }
                 if (index[0] >= targets.size()) {
@@ -1128,7 +1128,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 for (int y = cy - 2; y <= cy + 2; y++) {
                     Block block = world.getBlockAt(x, y, z);
                     Material material = block.getType();
-                    if (isGuardedBlock(block) || material == Material.AIR || material == Material.BEDROCK
+                    if (isGuardedBlock(block) || material.isAir() || material == Material.BEDROCK
                             || material == Material.BARRIER || material == Material.WATER
                             || material == Material.LAVA || block.getState() instanceof InventoryHolder
                             || isOre(material)) {
@@ -1151,15 +1151,15 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 while (processed < 30 && index[0] < targets.size()) {
                     Block block = targets.get(index[0]++);
                     Material material = block.getType();
-                    if (isGuardedBlock(block) || material == Material.AIR || material == Material.BEDROCK
+                    if (isGuardedBlock(block) || material.isAir() || material == Material.BEDROCK
                             || material == Material.BARRIER
                             || isOre(material)) {
                         continue;
                     }
                     remember(block);
                     block.setType(Material.AIR);
-                    world.spawnParticle(Particle.BLOCK_CRACK, block.getLocation().add(0.5, 0.5, 0.5), 8,
-                            0.2, 0.2, 0.2, 0.02, new MaterialData(material));
+                    world.spawnParticle(Particle.BLOCK, block.getLocation().add(0.5, 0.5, 0.5), 8,
+                            0.2, 0.2, 0.2, 0.02, material.createBlockData());
                     processed++;
                 }
                 if (index[0] >= targets.size()) {
@@ -1182,7 +1182,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 for (int y = cy - 2; y <= cy + 2; y++) {
                     Block block = world.getBlockAt(x, y, z);
                     Material material = block.getType();
-                    if (isGuardedBlock(block) || material == Material.AIR || material == Material.BEDROCK
+                    if (isGuardedBlock(block) || material.isAir() || material == Material.BEDROCK
                             || material == Material.BARRIER || material == Material.WATER
                             || material == Material.LAVA || block.getState() instanceof InventoryHolder) {
                         continue;
@@ -1220,7 +1220,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     cancel();
                     return;
                 }
-                world.spawnParticle(Particle.FIREWORKS_SPARK, center, 25, radius / 2.0, 2.0, radius / 2.0, 0.05);
+                world.spawnParticle(Particle.FIREWORK, center, 25, radius / 2.0, 2.0, radius / 2.0, 0.05);
             }
         }.runTaskTimer(this, 0L, 10L);
     }
@@ -1258,20 +1258,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private boolean isOre(Material material) {
-        switch (material) {
-            case COAL_ORE:
-            case DIAMOND_ORE:
-            case EMERALD_ORE:
-            case GOLD_ORE:
-            case IRON_ORE:
-            case LAPIS_ORE:
-            case REDSTONE_ORE:
-            case GLOWING_REDSTONE_ORE:
-            case QUARTZ_ORE:
-                return true;
-            default:
-                return false;
-        }
+        return material.name().endsWith("_ORE");
     }
 
     private void pullEntitiesIn(Location center, double radius) {
@@ -1283,7 +1270,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             if (entity instanceof LivingEntity) {
                 LivingEntity living = (LivingEntity) entity;
                 living.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0));
-                living.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 100, 1));
+                living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 1));
                 living.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 0));
             }
             Vector pull = center.toVector().subtract(entity.getLocation().toVector());
@@ -1308,10 +1295,10 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     double angle = Math.PI * 2.0 * i / steps;
                     double x = Math.cos(angle) * frameRadius;
                     double z = Math.sin(angle) * frameRadius;
-                    world.spawnParticle(primary, center.clone().add(x, 0.5, z), 1, 0.0, 0.0, 0.0, 0.0);
+                    world.spawnParticle(primary, center.clone().add(x, 0.5, z), 1, 0.0, 0.0, 0.0, 0.0, particleData(primary));
                     if (i % 4 == 0) {
                         world.spawnParticle(secondary, center.clone().add(x, 0.5, z), 1,
-                                0.0, 0.0, 0.0, 0.0);
+                                0.0, 0.0, 0.0, 0.0, particleData(secondary));
                     }
                 }
                 if (frame >= 10) {
@@ -1322,7 +1309,22 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private void spawnBurst(Location center, Particle particle, int count, double x, double y, double z) {
-        center.getWorld().spawnParticle(particle, center, count, x, y, z, 0.05);
+        center.getWorld().spawnParticle(particle, center, count, x, y, z, 0.05, particleData(particle));
+    }
+
+    // Some modern particles refuse to spawn without their data object.
+    private static Object particleData(Particle particle) {
+        Class<?> type = particle.getDataType();
+        if (type == org.bukkit.Color.class) {
+            return org.bukkit.Color.fromRGB(150, 0, 200);
+        }
+        if (type == Particle.DustOptions.class) {
+            return new Particle.DustOptions(org.bukkit.Color.fromRGB(150, 0, 200), 1.0F);
+        }
+        if (type == Float.class) {
+            return 1.0F;
+        }
+        return null;
     }
 
     private void consumeItem(Player player, EquipmentSlot hand) {
@@ -1390,9 +1392,6 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     private ItemStack createTNTItem(TNTType type, int amount) {
         ItemStack item = new ItemStack(type.icon, amount);
         ItemMeta meta = item.getItemMeta();
-        if (meta instanceof org.bukkit.inventory.meta.SpawnEggMeta && type.egg != null) {
-            ((org.bukkit.inventory.meta.SpawnEggMeta) meta).setSpawnedType(type.egg);
-        }
         meta.setDisplayName(type.displayName);
         List<String> lore = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
@@ -1412,7 +1411,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         int last = lore.size() - 1;
         lore.set(last, lore.get(last) + hide(HIDDEN_MARKER_PREFIX + type.key));
         meta.setLore(lore);
-        meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
         item.setItemMeta(meta);
         return item;
@@ -1544,20 +1543,20 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private enum TNTType {
-        NUKE("nuke", ChatColor.DARK_RED + "Nuke TNT", Material.COMMAND_MINECART, Material.REDSTONE_BLOCK, "A huge, devastating blast."),
-        MINING("mining", ChatColor.GRAY + "Mining TNT", Material.COMMAND_MINECART, Material.GOLD_BLOCK, "Digs a mining tunnel where placed."),
-        FIRE("fire", ChatColor.RED + "Fire TNT", Material.COMMAND_MINECART, Material.NETHERRACK, "Sets the area ablaze."),
-        SLIME("slime", ChatColor.GREEN + "Slime TNT", Material.COMMAND_MINECART, Material.SLIME_BLOCK, "Covers the area in bouncy slime."),
-        X_RAY("x-ray", ChatColor.BLUE + "X-Ray TNT", Material.COMMAND_MINECART, Material.DIAMOND_BLOCK, "Reveals ores in a wide area."),
-        FIREWORK("firework", ChatColor.LIGHT_PURPLE + "Firework TNT", Material.COMMAND_MINECART, Material.FIREWORK, "Bursts into a firework show."),
-        POOP("poop", ChatColor.DARK_GRAY + "Poop TNT", Material.COMMAND_MINECART, Material.SOUL_SAND, "Leaves a messy surprise."),
-        MOB("mob", ChatColor.DARK_GREEN + "Mob TNT", Material.COMMAND_MINECART, Material.MOSSY_COBBLESTONE, "Summons mobs when it blows."),
-        BOSS("boss", ChatColor.DARK_RED + "Boss TNT", Material.COMMAND_MINECART, Material.BEDROCK, "Calls in a powerful boss."),
-        RDM("rdm", ChatColor.LIGHT_PURPLE + "rdmTNT", Material.COMMAND_MINECART, Material.PURPUR_BLOCK, "A random explosion every time."),
-        SUN("sun", ChatColor.GOLD + "Sun TNT", Material.COMMAND_MINECART, Material.SEA_LANTERN, "Burns bright like a small sun."),
+        NUKE("nuke", ChatColor.DARK_RED + "Nuke TNT", Material.COMMAND_BLOCK_MINECART, Material.REDSTONE_BLOCK, "A huge, devastating blast."),
+        MINING("mining", ChatColor.GRAY + "Mining TNT", Material.COMMAND_BLOCK_MINECART, Material.GOLD_BLOCK, "Digs a mining tunnel where placed."),
+        FIRE("fire", ChatColor.RED + "Fire TNT", Material.COMMAND_BLOCK_MINECART, Material.NETHERRACK, "Sets the area ablaze."),
+        SLIME("slime", ChatColor.GREEN + "Slime TNT", Material.COMMAND_BLOCK_MINECART, Material.SLIME_BLOCK, "Covers the area in bouncy slime."),
+        X_RAY("x-ray", ChatColor.BLUE + "X-Ray TNT", Material.COMMAND_BLOCK_MINECART, Material.DIAMOND_BLOCK, "Reveals ores in a wide area."),
+        FIREWORK("firework", ChatColor.LIGHT_PURPLE + "Firework TNT", Material.COMMAND_BLOCK_MINECART, Material.MAGENTA_WOOL, "Bursts into a firework show."),
+        POOP("poop", ChatColor.DARK_GRAY + "Poop TNT", Material.COMMAND_BLOCK_MINECART, Material.SOUL_SAND, "Leaves a messy surprise."),
+        MOB("mob", ChatColor.DARK_GREEN + "Mob TNT", Material.COMMAND_BLOCK_MINECART, Material.MOSSY_COBBLESTONE, "Summons mobs when it blows."),
+        BOSS("boss", ChatColor.DARK_RED + "Boss TNT", Material.COMMAND_BLOCK_MINECART, Material.BEDROCK, "Calls in a powerful boss."),
+        RDM("rdm", ChatColor.LIGHT_PURPLE + "rdmTNT", Material.COMMAND_BLOCK_MINECART, Material.PURPUR_BLOCK, "A random explosion every time."),
+        SUN("sun", ChatColor.GOLD + "Sun TNT", Material.COMMAND_BLOCK_MINECART, Material.SEA_LANTERN, "Burns bright like a small sun."),
         BLACK_HOLE("black-hole", ChatColor.DARK_PURPLE + "Black Hole TNT",
-                Material.COMMAND_MINECART, Material.OBSIDIAN, "Pulls everything into a black hole."),
-        ANTI("anti-tnt", ChatColor.AQUA + "Anti-TNT", Material.COMMAND_MINECART, Material.QUARTZ_BLOCK,
+                Material.COMMAND_BLOCK_MINECART, Material.OBSIDIAN, "Pulls everything into a black hole."),
+        ANTI("anti-tnt", ChatColor.AQUA + "Anti-TNT", Material.COMMAND_BLOCK_MINECART, Material.QUARTZ_BLOCK,
                 "Undoes damage and changes from other custom TNT.");
 
         private final String key;
@@ -1565,7 +1564,6 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         private final Material icon;
         private final Material effectBlock;
         private final String description;
-        private EntityType egg;
 
         TNTType(String key, String displayName, Material icon, Material effectBlock, String description) {
             this.key = key;
@@ -1573,22 +1571,6 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             this.icon = icon;
             this.effectBlock = effectBlock;
             this.description = description;
-        }
-
-        static {
-            FIREWORK.egg = null;
-            POOP.egg = EntityType.ILLUSIONER;
-            MOB.egg = EntityType.GIANT;
-            BOSS.egg = EntityType.ARROW;
-            RDM.egg = EntityType.SNOWBALL;
-            SUN.egg = EntityType.ENDER_PEARL;
-            BLACK_HOLE.egg = EntityType.FALLING_BLOCK;
-            NUKE.egg = EntityType.PRIMED_TNT;
-            MINING.egg = EntityType.PIG_ZOMBIE;
-            FIRE.egg = EntityType.BLAZE;
-            SLIME.egg = EntityType.SLIME;
-            X_RAY.egg = EntityType.SILVERFISH;
-            ANTI.egg = EntityType.ENDERMITE;
         }
 
         private static TNTType fromKey(String key) {

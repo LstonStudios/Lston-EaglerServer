@@ -54,7 +54,7 @@ final class AdminLogin implements Listener {
             "bukkit.command.unban.ip", "bukkit.command.banlist", "bukkit.command.kick",
             "minecraft.command.kill", "minecraft.command.tp", "minecraft.command.teleport", "bukkit.command.teleport",
             "minecraft.command.selector",
-            "minecraft.command.give", "minecraft.command.xp", "bukkit.command.give",
+            "minecraft.command.give", "minecraft.command.xp", "minecraft.command.experience", "bukkit.command.give",
             "bukkit.command.xp", "money.admin", "customtnt.admin", "customability.admin",
             "customitems.admin", "customgun.admin", "spawnmobs.use", "usernameeffects.admin"};
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();

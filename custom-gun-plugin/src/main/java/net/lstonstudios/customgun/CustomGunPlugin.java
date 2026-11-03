@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,33 +35,33 @@ import org.bukkit.util.Vector;
 public final class CustomGunPlugin extends JavaPlugin implements Listener {
 
     private enum Gun {
-        PISTOL("pistol", Material.GOLD_HOE, ChatColor.GRAY, "Pistol", "Reliable and accurate.", 6.0, 1, 0.0, 50, 60, 0),
-        SMG("smg", Material.GOLD_HOE, ChatColor.YELLOW, "SMG", "Rapid fire, low damage.", 3.0, 1, 0.05, 40, 3, 0),
-        SHOTGUN("shotgun", Material.GOLD_HOE, ChatColor.GOLD, "Shotgun", "Six pellets, deadly up close.", 4.0, 6, 0.12, 20, 100, 0),
-        SNIPER("sniper", Material.GOLD_HOE, ChatColor.AQUA, "Sniper", "One long-range, high-damage shot.", 18.0, 1, 0.0, 120, 160, 0),
-        ROCKET("rocket", Material.GOLD_HOE, ChatColor.RED, "Rocket Launcher", "Explodes where it lands, without breaking blocks.", 0.0, 1, 0.0, 70, 200, 3),
-        REVOLVER("revolver", Material.GOLD_HOE, ChatColor.DARK_RED, "Revolver", "Heavy rounds, steady aim.", 9.0, 1, 0.0, 60, 80, 0),
-        RIFLE("rifle", Material.GOLD_HOE, ChatColor.GREEN, "Assault Rifle", "Fast, accurate bursts.", 4.0, 1, 0.02, 60, 5, 0),
-        MINIGUN("minigun", Material.GOLD_HOE, ChatColor.DARK_GRAY, "Minigun", "A storm of weak, wild bullets.", 2.0, 1, 0.1, 35, 2, 0),
-        FREEZE("freeze", Material.GOLD_HOE, ChatColor.AQUA, "Freeze Ray", "Chills targets with heavy slowness.", 3.0, 1, 0.0, 40, 100, 0),
-        THUNDER("thunder", Material.GOLD_HOE, ChatColor.LIGHT_PURPLE, "Thunder Gun", "Calls lightning down on your target.", 8.0, 1, 0.0, 50, 160, 0),
-        RAILGUN("railgun", Material.GOLD_HOE, ChatColor.DARK_PURPLE, "Railgun", "Pierces through every target in line.", 14.0, 1, 0.0, 100, 240, 0),
-        DERRINGER("derringer", ChatColor.WHITE, "Derringer", "Tiny, quick, short range.", 4.0, 1, 0.0, 25, 30, 0, Particle.VILLAGER_HAPPY, Sound.ENTITY_ARROW_SHOOT, 2.0f, null),
+        PISTOL("pistol", Material.GOLDEN_HOE, ChatColor.GRAY, "Pistol", "Reliable and accurate.", 6.0, 1, 0.0, 50, 60, 0),
+        SMG("smg", Material.GOLDEN_HOE, ChatColor.YELLOW, "SMG", "Rapid fire, low damage.", 3.0, 1, 0.05, 40, 3, 0),
+        SHOTGUN("shotgun", Material.GOLDEN_HOE, ChatColor.GOLD, "Shotgun", "Six pellets, deadly up close.", 4.0, 6, 0.12, 20, 100, 0),
+        SNIPER("sniper", Material.GOLDEN_HOE, ChatColor.AQUA, "Sniper", "One long-range, high-damage shot.", 18.0, 1, 0.0, 120, 160, 0),
+        ROCKET("rocket", Material.GOLDEN_HOE, ChatColor.RED, "Rocket Launcher", "Explodes where it lands, without breaking blocks.", 0.0, 1, 0.0, 70, 200, 3),
+        REVOLVER("revolver", Material.GOLDEN_HOE, ChatColor.DARK_RED, "Revolver", "Heavy rounds, steady aim.", 9.0, 1, 0.0, 60, 80, 0),
+        RIFLE("rifle", Material.GOLDEN_HOE, ChatColor.GREEN, "Assault Rifle", "Fast, accurate bursts.", 4.0, 1, 0.02, 60, 5, 0),
+        MINIGUN("minigun", Material.GOLDEN_HOE, ChatColor.DARK_GRAY, "Minigun", "A storm of weak, wild bullets.", 2.0, 1, 0.1, 35, 2, 0),
+        FREEZE("freeze", Material.GOLDEN_HOE, ChatColor.AQUA, "Freeze Ray", "Chills targets with heavy slowness.", 3.0, 1, 0.0, 40, 100, 0),
+        THUNDER("thunder", Material.GOLDEN_HOE, ChatColor.LIGHT_PURPLE, "Thunder Gun", "Calls lightning down on your target.", 8.0, 1, 0.0, 50, 160, 0),
+        RAILGUN("railgun", Material.GOLDEN_HOE, ChatColor.DARK_PURPLE, "Railgun", "Pierces through every target in line.", 14.0, 1, 0.0, 100, 240, 0),
+        DERRINGER("derringer", ChatColor.WHITE, "Derringer", "Tiny, quick, short range.", 4.0, 1, 0.0, 25, 30, 0, Particle.HAPPY_VILLAGER, Sound.ENTITY_ARROW_SHOOT, 2.0f, null),
         MACHINE_PISTOL("machinepistol", ChatColor.YELLOW, "Machine Pistol", "Fast and loose.", 2.5, 1, 0.08, 30, 4, 0, Particle.NOTE, Sound.ENTITY_SKELETON_SHOOT, 2.0f, null),
-        HUNTING_RIFLE("huntingrifle", ChatColor.DARK_GREEN, "Hunting Rifle", "Accurate and powerful.", 10.0, 1, 0.0, 80, 120, 0, Particle.TOWN_AURA, Sound.ENTITY_ARROW_SHOOT, 0.7f, null),
-        POISON("poison", ChatColor.GREEN, "Poison Dart Gun", "Poisons whoever it hits.", 2.0, 1, 0.0, 45, 100, 0, Particle.SLIME, Sound.ENTITY_SPIDER_AMBIENT, 1.8f, "poison"),
-        BLINDER("blinder", ChatColor.DARK_GRAY, "Blinder", "Blinds and slows whoever it hits.", 2.0, 1, 0.0, 40, 120, 0, Particle.SMOKE_LARGE, Sound.ENTITY_BAT_TAKEOFF, 0.6f, "blind"),
-        GRAVITY("gravity", ChatColor.BLUE, "Gravity Gun", "Yanks the target toward you.", 3.0, 1, 0.0, 40, 120, 0, Particle.ENCHANTMENT_TABLE, Sound.ENTITY_ENDERMEN_TELEPORT, 1.5f, "pull"),
-        KNOCKBACK("knockback", ChatColor.GOLD, "Knockback Cannon", "Blasts the target away.", 3.0, 1, 0.0, 35, 140, 0, Particle.EXPLOSION_NORMAL, Sound.ENTITY_IRONGOLEM_ATTACK, 0.8f, "knock"),
-        LASER("laser", ChatColor.RED, "Laser", "Fast, straight and precise.", 5.0, 1, 0.0, 70, 6, 0, Particle.REDSTONE, Sound.BLOCK_NOTE_PLING, 2.0f, null),
-        PLASMA("plasma", ChatColor.LIGHT_PURPLE, "Plasma Rifle", "A slow, hard-hitting plasma bolt.", 8.0, 1, 0.0, 60, 40, 0, Particle.SPELL_WITCH, Sound.ENTITY_BLAZE_SHOOT, 0.5f, null),
-        GRENADE("grenade", ChatColor.DARK_GREEN, "Grenade Launcher", "A small blast where it lands.", 0.0, 1, 0.0, 50, 140, 2, Particle.SMOKE_NORMAL, Sound.ENTITY_SNOWBALL_THROW, 0.5f, null),
-        WITHER("wither", ChatColor.BLACK, "Wither Gun", "Withers whoever it hits.", 6.0, 1, 0.0, 50, 160, 0, Particle.SPELL_MOB, Sound.ENTITY_WITHER_SHOOT, 1.2f, "wither"),
-        VOID("void", ChatColor.DARK_PURPLE, "Void Gun", "Withers and slows its target.", 8.0, 1, 0.0, 55, 200, 0, Particle.SUSPENDED_DEPTH, Sound.ENTITY_ENDERMEN_SCREAM, 0.6f, "void"),
-        DRAGON("dragon", ChatColor.DARK_RED, "Dragon Cannon", "A huge blast in a dragon's breath.", 0.0, 1, 0.0, 70, 260, 4, Particle.DRAGON_BREATH, Sound.ENTITY_ENDERDRAGON_GROWL, 0.8f, null),
-        ANTIMATERIAL("antimaterial", ChatColor.AQUA, "Anti-Material Rifle", "Enormous damage from very far.", 28.0, 1, 0.0, 140, 300, 0, Particle.CRIT_MAGIC, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, null),
+        HUNTING_RIFLE("huntingrifle", ChatColor.DARK_GREEN, "Hunting Rifle", "Accurate and powerful.", 10.0, 1, 0.0, 80, 120, 0, Particle.MYCELIUM, Sound.ENTITY_ARROW_SHOOT, 0.7f, null),
+        POISON("poison", ChatColor.GREEN, "Poison Dart Gun", "Poisons whoever it hits.", 2.0, 1, 0.0, 45, 100, 0, Particle.HAPPY_VILLAGER, Sound.ENTITY_SPIDER_AMBIENT, 1.8f, "poison"),
+        BLINDER("blinder", ChatColor.DARK_GRAY, "Blinder", "Blinds and slows whoever it hits.", 2.0, 1, 0.0, 40, 120, 0, Particle.LARGE_SMOKE, Sound.ENTITY_BAT_TAKEOFF, 0.6f, "blind"),
+        GRAVITY("gravity", ChatColor.BLUE, "Gravity Gun", "Yanks the target toward you.", 3.0, 1, 0.0, 40, 120, 0, Particle.ENCHANT, Sound.ENTITY_ENDERMAN_TELEPORT, 1.5f, "pull"),
+        KNOCKBACK("knockback", ChatColor.GOLD, "Knockback Cannon", "Blasts the target away.", 3.0, 1, 0.0, 35, 140, 0, Particle.POOF, Sound.ENTITY_IRON_GOLEM_ATTACK, 0.8f, "knock"),
+        LASER("laser", ChatColor.RED, "Laser", "Fast, straight and precise.", 5.0, 1, 0.0, 70, 6, 0, Particle.DUST, Sound.BLOCK_NOTE_BLOCK_PLING, 2.0f, null),
+        PLASMA("plasma", ChatColor.LIGHT_PURPLE, "Plasma Rifle", "A slow, hard-hitting plasma bolt.", 8.0, 1, 0.0, 60, 40, 0, Particle.WITCH, Sound.ENTITY_BLAZE_SHOOT, 0.5f, null),
+        GRENADE("grenade", ChatColor.DARK_GREEN, "Grenade Launcher", "A small blast where it lands.", 0.0, 1, 0.0, 50, 140, 2, Particle.SMOKE, Sound.ENTITY_SNOWBALL_THROW, 0.5f, null),
+        WITHER("wither", ChatColor.BLACK, "Wither Gun", "Withers whoever it hits.", 6.0, 1, 0.0, 50, 160, 0, Particle.WITCH, Sound.ENTITY_WITHER_SHOOT, 1.2f, "wither"),
+        VOID("void", ChatColor.DARK_PURPLE, "Void Gun", "Withers and slows its target.", 8.0, 1, 0.0, 55, 200, 0, Particle.UNDERWATER, Sound.ENTITY_ENDERMAN_SCREAM, 0.6f, "void"),
+        DRAGON("dragon", ChatColor.DARK_RED, "Dragon Cannon", "A huge blast in a dragon's breath.", 0.0, 1, 0.0, 70, 260, 4, Particle.DRAGON_BREATH, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.8f, null),
+        ANTIMATERIAL("antimaterial", ChatColor.AQUA, "Anti-Material Rifle", "Enormous damage from very far.", 28.0, 1, 0.0, 140, 300, 0, Particle.ENCHANTED_HIT, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, null),
         NUKE("nuke", ChatColor.DARK_RED, "Mini Nuke Launcher", "A massive blast. Stand back.", 0.0, 1, 0.0, 90, 500, 6, Particle.CLOUD, Sound.ENTITY_WITHER_SPAWN, 1.0f, null),
-        OMEGA("omega", ChatColor.LIGHT_PURPLE, "Omega Cannon", "Pierces every target for huge damage.", 20.0, 1, 0.0, 120, 400, 0, Particle.TOTEM, Sound.ENTITY_ENDERDRAGON_DEATH, 1.5f, null);
+        OMEGA("omega", ChatColor.LIGHT_PURPLE, "Omega Cannon", "Pierces every target for huge damage.", 20.0, 1, 0.0, 120, 400, 0, Particle.TOTEM_OF_UNDYING, Sound.ENTITY_ENDER_DRAGON_DEATH, 1.5f, null);
 
         final String key;
         final Material material;
@@ -81,7 +82,7 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
         Gun(String key, ChatColor color, String name, String description, double damage, int pellets,
                 double spread, int range, int cooldownTicks, int explosion, Particle trail, Sound sound,
                 float pitch, String effect) {
-            this(key.toLowerCase(), Material.GOLD_HOE, color, name, description, damage, pellets, spread, range,
+            this(key.toLowerCase(), Material.GOLDEN_HOE, color, name, description, damage, pellets, spread, range,
                     cooldownTicks, explosion, trail, sound, pitch, effect);
         }
 
@@ -149,7 +150,7 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
         lore.add(ChatColor.YELLOW + "Right-click to shoot.");
         lore.add(MARKER_PREFIX + gun.key);
         meta.setLore(lore);
-        meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 3, true);
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
         meta.addItemFlags(ItemFlag.values());
         meta.setUnbreakable(true);
         stack.setItemMeta(meta);
@@ -234,10 +235,10 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 break;
             case SHOTGUN:
                 world.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 1.6f);
-                world.playSound(at, Sound.ENTITY_IRONGOLEM_ATTACK, 1.0f, 0.5f);
+                world.playSound(at, Sound.ENTITY_IRON_GOLEM_ATTACK, 1.0f, 0.5f);
                 break;
             case SNIPER:
-                world.playSound(at, Sound.ENTITY_LIGHTNING_THUNDER, 0.5f, 2.0f);
+                world.playSound(at, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.5f, 2.0f);
                 world.playSound(at, Sound.ENTITY_ARROW_SHOOT, 1.0f, 0.5f);
                 break;
             case REVOLVER:
@@ -255,14 +256,14 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 world.playSound(at, Sound.ENTITY_SNOWBALL_THROW, 1.0f, 0.8f);
                 break;
             case THUNDER:
-                world.playSound(at, Sound.ENTITY_LIGHTNING_IMPACT, 0.5f, 2.0f);
+                world.playSound(at, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.5f, 2.0f);
                 break;
             case RAILGUN:
-                world.playSound(at, Sound.ENTITY_ENDERDRAGON_SHOOT, 0.8f, 1.5f);
+                world.playSound(at, Sound.ENTITY_ENDER_DRAGON_SHOOT, 0.8f, 1.5f);
                 world.playSound(at, Sound.ENTITY_WITHER_SHOOT, 0.7f, 1.8f);
                 break;
             default:
-                world.playSound(at, Sound.ENTITY_FIREWORK_LAUNCH, 1.0f, 0.6f);
+                world.playSound(at, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0f, 0.6f);
                 world.playSound(at, Sound.ENTITY_GHAST_SHOOT, 0.8f, 0.6f);
                 break;
         }
@@ -308,7 +309,11 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
     // Every gun has its own trail. Only the sniper uses fire.
     private void trail(World world, Gun gun, Location point, double travelled) {
         if (gun.trail != null) {
-            world.spawnParticle(gun.trail, point, 1, 0.02, 0.02, 0.02, 0.01);
+            if (gun.trail == Particle.DUST) {
+                world.spawnParticle(gun.trail, point, 1, new Particle.DustOptions(Color.RED, 1.0f));
+            } else {
+                world.spawnParticle(gun.trail, point, 1, 0.02, 0.02, 0.02, 0.01);
+            }
             return;
         }
         switch (gun) {
@@ -317,7 +322,7 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 break;
             case SMG:
                 if (travelled % 2 == 0) {
-                    world.spawnParticle(Particle.SMOKE_NORMAL, point, 1, 0, 0, 0, 0);
+                    world.spawnParticle(Particle.SMOKE, point, 1, 0, 0, 0, 0);
                 }
                 break;
             case SHOTGUN:
@@ -325,24 +330,24 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 break;
             case SNIPER:
                 world.spawnParticle(Particle.FLAME, point, 2, 0, 0, 0, 0);
-                world.spawnParticle(Particle.CRIT_MAGIC, point, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.ENCHANTED_HIT, point, 1, 0, 0, 0, 0);
                 break;
             case ROCKET:
-                world.spawnParticle(Particle.SMOKE_LARGE, point, 1, 0.05, 0.05, 0.05, 0.01);
+                world.spawnParticle(Particle.LARGE_SMOKE, point, 1, 0.05, 0.05, 0.05, 0.01);
                 break;
             case REVOLVER:
-                world.spawnParticle(Particle.SPELL_INSTANT, point, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.INSTANT_EFFECT, point, 1, 0, 0, 0, 0);
                 break;
             case RIFLE:
-                world.spawnParticle(Particle.FIREWORKS_SPARK, point, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.FIREWORK, point, 1, 0, 0, 0, 0);
                 break;
             case MINIGUN:
                 if (travelled % 2 == 0) {
-                    world.spawnParticle(Particle.SPELL, point, 1, 0, 0, 0, 0);
+                    world.spawnParticle(Particle.EFFECT, point, 1, 0, 0, 0, 0);
                 }
                 break;
             case FREEZE:
-                world.spawnParticle(Particle.SNOW_SHOVEL, point, 2, 0.03, 0.03, 0.03, 0.01);
+                world.spawnParticle(Particle.SNOWFLAKE, point, 2, 0.03, 0.03, 0.03, 0.01);
                 break;
             case THUNDER:
                 world.spawnParticle(Particle.END_ROD, point, 1, 0.02, 0.02, 0.02, 0.01);
@@ -356,13 +361,13 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
     private void impact(Player shooter, Gun gun, Location where, LivingEntity target) {
         World world = where.getWorld();
         if (gun.explosion > 0) {
-            world.spawnParticle(Particle.EXPLOSION_LARGE, where, gun.explosion >= 4 ? 4 : 1, 0.5, 0.5, 0.5, 0);
+            world.spawnParticle(Particle.EXPLOSION_EMITTER, where, gun.explosion >= 4 ? 4 : 1, 0.5, 0.5, 0.5, 0);
             world.createExplosion(where.getX(), where.getY(), where.getZ(), gun.explosion, false, false);
             return;
         }
         switch (gun) {
             case FREEZE:
-                world.spawnParticle(Particle.SNOWBALL, where, 12, 0.2, 0.2, 0.2, 0.05);
+                world.spawnParticle(Particle.SNOWFLAKE, where, 12, 0.2, 0.2, 0.2, 0.05);
                 break;
             case THUNDER:
                 world.spawnParticle(Particle.END_ROD, where, 12, 0.2, 0.2, 0.2, 0.1);
@@ -375,8 +380,8 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 world.spawnParticle(Particle.CLOUD, where, 3, 0.05, 0.05, 0.05, 0.02);
                 break;
             default:
-                world.spawnParticle(Particle.FIREWORKS_SPARK, where, 6, 0.1, 0.1, 0.1, 0.05);
-                world.spawnParticle(Particle.SMOKE_NORMAL, where, 4, 0.05, 0.05, 0.05, 0.01);
+                world.spawnParticle(Particle.FIREWORK, where, 6, 0.1, 0.1, 0.1, 0.05);
+                world.spawnParticle(Particle.SMOKE, where, 4, 0.05, 0.05, 0.05, 0.01);
                 break;
         }
         if (target != null) {
@@ -387,13 +392,13 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
             }
             if (gun == Gun.FREEZE) {
                 target.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                        org.bukkit.potion.PotionEffectType.SLOW, 100, 3));
+                        org.bukkit.potion.PotionEffectType.SLOWNESS, 100, 3));
             }
         }
     }
 
     private void applyEffect(Player shooter, Gun gun, LivingEntity target) {
-        org.bukkit.potion.PotionEffectType slow = org.bukkit.potion.PotionEffectType.SLOW;
+        org.bukkit.potion.PotionEffectType slow = org.bukkit.potion.PotionEffectType.SLOWNESS;
         switch (gun.effect) {
             case "poison":
                 target.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 100, 1));
