@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Keeps the web pages on ports 8081 (Eaglercraft client) and 8082 (Lston Packs)
+# up whenever the codespace is running, whether or not the game server is.
+# Safe to run repeatedly: a service is only (re)started if its port is free.
+
+ROOT=/workspaces/EaglerServer-1.12
+LOG_DIR=/tmp/always-on
+mkdir -p "$LOG_DIR"
+
+port_open() { (exec 4<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+
+start_if_down() {
+  local port=$1; shift
+  port_open "$port" && return 0
+  setsid nohup "$@" >>"$LOG_DIR/$port.log" 2>&1 </dev/null &
+}
+
+start_if_down 8081 node "$ROOT/bin/web-gateway.js"
+start_if_down 8082 python3 "$ROOT/custom-tnt-resource-pack/serve_pack.py"

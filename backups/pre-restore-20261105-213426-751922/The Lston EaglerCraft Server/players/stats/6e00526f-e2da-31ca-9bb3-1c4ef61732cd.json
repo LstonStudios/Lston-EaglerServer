@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 1190,
+      "minecraft:leave_game": 2,
+      "minecraft:mob_kills": 9,
+      "minecraft:damage_taken": 2655,
+      "minecraft:open_shulker_box": 9,
+      "minecraft:damage_absorbed": 375,
+      "minecraft:time_since_death": 1184,
+      "minecraft:damage_dealt_absorbed": 106,
+      "minecraft:total_world_time": 58300,
+      "minecraft:crouch_one_cm": 2,
+      "minecraft:deaths": 7,
+      "minecraft:player_kills": 2,
+      "minecraft:damage_resisted": 634,
+      "minecraft:damage_blocked_by_shield": 210,
+      "minecraft:walk_one_cm": 214790,
+      "minecraft:walk_under_water_one_cm": 23,
+      "minecraft:play_time": 58300,
+      "minecraft:damage_dealt": 2844,
+      "minecraft:jump": 392,
+      "minecraft:drop": 17,
+      "minecraft:sprint_one_cm": 134854,
+      "minecraft:open_chest": 7,
+      "minecraft:fall_one_cm": 16029,
+      "minecraft:fly_one_cm": 32101,
+      "minecraft:interact_with_anvil": 1,
+      "minecraft:walk_on_water_one_cm": 454,
+      "minecraft:sneak_time": 299
+    },
+    "minecraft:crafted": {
+      "minecraft:wind_charge": 256
+    },
+    "minecraft:picked_up": {
+      "minecraft:diamond_sword": 1,
+      "minecraft:netherrack": 3,
+      "minecraft:diorite": 4,
+      "minecraft:salmon": 2,
+      "minecraft:dirt": 48,
+      "minecraft:iron_block": 10,
+      "minecraft:white_wool": 1,
+      "minecraft:lime_shulker_box": 1,
+      "minecraft:azure_bluet": 1,
+      "minecraft:gold_nugget": 15,
+      "minecraft:rotten_flesh": 7,
+      "minecraft:coal": 18,
+      "minecraft:golden_sword": 2,
+      "minecraft:obsidian": 12,
+      "minecraft:wheat_seeds": 5,
+      "minecraft:shield": 1,
+      "minecraft:purple_shulker_box": 9,
+      "minecraft:granite": 2,
+      "minecraft:mutton": 2,
+      "minecraft:lapis_lazuli": 16,
+      "minecraft:netherite_sword": 1
+    },
+    "minecraft:dropped": {
+      "minecraft:rotten_flesh": 7,
+      "minecraft:gold_nugget": 15,
+      "minecraft:cooked_beef": 7,
+      "minecraft:netherrack": 3,
+      "minecraft:white_shulker_box": 1,
+      "minecraft:golden_sword": 2,
+      "minecraft:purple_shulker_box": 3,
+      "minecraft:diamond_sword": 1
+    },
+    "minecraft:killed": {
+      "minecraft:zombified_piglin": 6,
+      "minecraft:copper_golem": 2,
+      "minecraft:piglin": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 4
+    },
+    "minecraft:mined": {
+      "minecraft:granite": 5,
+      "minecraft:dirt": 17,
+      "minecraft:netherrack": 3,
+      "minecraft:diorite": 10,
+      "minecraft:grass_block": 6,
+      "minecraft:short_grass": 1,
+      "minecraft:fire": 3,
+      "minecraft:iron_block": 10,
+      "minecraft:cut_copper_stairs": 4,
+      "minecraft:purple_shulker_box": 3,
+      "minecraft:lime_shulker_box": 1,
+      "minecraft:copper_block": 4,
+      "minecraft:stone": 14
+    },
+    "minecraft:used": {
+      "minecraft:red_shulker_box": 1,
+      "minecraft:cooked_beef": 8,
+      "minecraft:wind_charge": 21,
+      "minecraft:diamond_pickaxe": 80,
+      "minecraft:shield": 1,
+      "minecraft:netherite_sword": 9,
+      "minecraft:enchanted_golden_apple": 3,
+      "minecraft:lime_shulker_box": 1,
+      "minecraft:diamond_sword": 107,
+      "minecraft:netherite_spear": 10,
+      "minecraft:purple_shulker_box": 1,
+      "minecraft:mace": 5
+    }
+  },
+  "DataVersion": 4903
+}

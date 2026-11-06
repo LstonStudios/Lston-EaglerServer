@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Export the 8081 client page and the 8082 Lston Packs site as a static folder for GitHub Pages.
+
+Usage: build-static-site [output_dir]   (default: ./_site)
+Layout: /  -> landing page, /client/ -> Eaglercraft page (8081), /packs/ -> Lston Packs (8082)
+"""
+
+import hashlib
+import json
+import shutil
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "custom-tnt-resource-pack"))
+import serve_pack  # noqa: E402
+
+out = Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "_site")
+shutil.rmtree(out, ignore_errors=True)
+
+# 8081: Eaglercraft client (the game itself needs the live server; the page is always up).
+client = out / "client"
+shutil.copytree(REPO / "web", client, ignore=shutil.ignore_patterns("*.map", "custom-tnt-pack.zip"))
+shutil.copy(client / "EaglerCraft-26.2.html", client / "index.html")
+
+# 8082: pack site, mirroring the routes of serve_pack.py.
+packs = out / "packs"
+(packs / "api").mkdir(parents=True)
+(packs / "textures").mkdir()
+shutil.copy(serve_pack.SITE, packs / "index.html")
+shutil.copy(serve_pack.PACK_PATH, packs / "custom-tnt-pack.zip")
+for png in serve_pack.TEXTURES.glob("*.png"):
+    shutil.copy(png, packs / "textures" / png.name)
+shutil.copy(serve_pack.TEXTURES / "anti_tnt.png", packs / "favicon.png")
+pack = serve_pack.PACK_PATH.read_bytes()
+(packs / "api" / "info").write_text(json.dumps({
+    "items": sorted(p.stem for p in serve_pack.TEXTURES.glob("*.png")),
+    "size": len(pack),
+    "sha1": hashlib.sha1(pack).hexdigest(),
+    "details": serve_pack.item_details(),
+}))
+
+(out / "index.html").write_text(
+    '<!doctype html><meta charset="utf-8"><title>Lston Studios</title>'
+    '<h1>Lston Studios</h1><ul><li><a href="client/">Eaglercraft client</a></li>'
+    '<li><a href="packs/">Lston Packs</a></li></ul>'
+)
+(out / ".nojekyll").write_text("")
+print(f"static site written to {out}")

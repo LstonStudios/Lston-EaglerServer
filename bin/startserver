@@ -1,27 +1,34 @@
 #!/usr/bin/env bash
 
 if [ "$#" -gt 1 ]; then
-  echo "Usage: startserver [1|2|3]" >&2
+  echo "Usage: startserver [1|2|3|4]" >&2
   exit 1
 fi
+
+color_done_output() {
+  sed --unbuffered -E 's/(Done \([^)]*\)!?)/\x1b[1;32m\1\x1b[0m/'
+}
 
 case "${1:-}" in
   1)
     cd /workspaces/EaglerServer-1.12/bungee || exit 1
-    exec sudo java -jar bungee.jar
+    exec sudo java -jar bungee.jar > >(color_done_output) 2>&1
     ;;
   3)
     exec node /workspaces/EaglerServer-1.12/bin/web-gateway.js
     ;;
+  4)
+    exec python3 /workspaces/EaglerServer-1.12/custom-tnt-resource-pack/serve_pack.py
+    ;;
   2)
     cd /workspaces/EaglerServer-1.12/server || exit 1
-    exec sudo java -Xmx2G -jar server.jar nogui
+    exec sudo java -Xmx1G -XX:+UseSerialGC -jar server.jar nogui > >(color_done_output) 2>&1
     ;;
   "")
     ;;
   *)
     echo "Unknown server target: $1" >&2
-    echo "Usage: startserver [1|2|3]" >&2
+    echo "Usage: startserver [1|2|3|4]" >&2
     exit 1
     ;;
 esac
@@ -42,7 +49,6 @@ cleanup() {
     printf 'stop\n' >&3
     wait "$server_pid" || true
   fi
-  kill "$gateway_pid" 2>/dev/null
   exec 3>&-
   rm -f "$console_pipe"
   rmdir "$console_dir"
@@ -53,10 +59,11 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 cd /workspaces/EaglerServer-1.12/server || exit 1
-sudo java -Xmx2G -jar server.jar nogui <"$console_pipe" &
+sudo java -Xmx1G -XX:+UseSerialGC -jar server.jar nogui <"$console_pipe" > >(color_done_output) 2>&1 &
 server_pid=$!
 
-gateway_pid=
+# Web pages (8081, 8082) are persistent; this starts them if they are down.
+/workspaces/EaglerServer-1.12/bin/always-on
 
 # Players can only join once the backend is up, so hold the gateway and proxy
 # back until it accepts connections (a join before that gets "Unable to connect
@@ -69,10 +76,7 @@ until (exec 4<>/dev/tcp/127.0.0.1/25566) 2>/dev/null; do
   fi
   sleep 2
 done
-echo "Backend is ready, starting the proxy and web gateway."
-
-node /workspaces/EaglerServer-1.12/bin/web-gateway.js &
-gateway_pid=$!
+echo "Backend is ready, starting the proxy."
 
 cd /workspaces/EaglerServer-1.12/bungee || exit 1
-sudo java -jar bungee.jar
+sudo java -jar bungee.jar > >(color_done_output) 2>&1

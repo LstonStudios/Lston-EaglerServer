@@ -7,7 +7,7 @@ description: Right-click guns with hitscan shots.
 commands:
   cgun:
     description: Give custom guns to players.
-    usage: /cgun <player|@a|@s|@p> <gun|all> [amount]
+    usage: /cgun <player|selector> <gun|all> [amount]
     aliases: [customgun]
     permission: customgun.admin
 permissions:

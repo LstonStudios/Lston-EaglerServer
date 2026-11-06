@@ -1,0 +1,71 @@
+{
+  "stats": {
+    "minecraft:crafted": {
+      "minecraft:wind_charge": 104
+    },
+    "minecraft:mined": {
+      "minecraft:tall_grass": 1,
+      "minecraft:sand": 1,
+      "minecraft:dirt": 2,
+      "minecraft:grass_block": 1,
+      "minecraft:white_shulker_box": 2
+    },
+    "minecraft:dropped": {
+      "minecraft:white_shulker_box": 2
+    },
+    "minecraft:picked_up": {
+      "minecraft:white_shulker_box": 3,
+      "minecraft:ender_pearl": 48,
+      "minecraft:dirt": 3,
+      "minecraft:firework_rocket": 256,
+      "minecraft:sand": 1,
+      "minecraft:wheat_seeds": 1,
+      "minecraft:golden_apple": 61
+    },
+    "minecraft:used": {
+      "minecraft:netherite_helmet": 1,
+      "minecraft:wind_charge": 43,
+      "minecraft:netherite_boots": 1,
+      "minecraft:netherite_leggings": 1,
+      "minecraft:netherite_chestplate": 1,
+      "minecraft:netherite_sword": 22,
+      "minecraft:enchanted_golden_apple": 1,
+      "minecraft:ender_pearl": 16
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 10936,
+      "minecraft:leave_game": 4,
+      "minecraft:mob_kills": 1,
+      "minecraft:damage_taken": 995,
+      "minecraft:open_shulker_box": 2,
+      "minecraft:damage_absorbed": 67,
+      "minecraft:time_since_death": 10934,
+      "minecraft:damage_dealt_absorbed": 71,
+      "minecraft:open_enderchest": 1,
+      "minecraft:total_world_time": 29405,
+      "minecraft:crouch_one_cm": 1793,
+      "minecraft:climb_one_cm": 884,
+      "minecraft:deaths": 4,
+      "minecraft:player_kills": 1,
+      "minecraft:damage_resisted": 206,
+      "minecraft:walk_one_cm": 60081,
+      "minecraft:play_time": 29405,
+      "minecraft:damage_dealt": 393,
+      "minecraft:jump": 101,
+      "minecraft:drop": 2,
+      "minecraft:sprint_one_cm": 21066,
+      "minecraft:open_chest": 1,
+      "minecraft:fall_one_cm": 20494,
+      "minecraft:fly_one_cm": 6015,
+      "minecraft:sneak_time": 1097
+    },
+    "minecraft:killed": {
+      "minecraft:endermite": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 1,
+      "minecraft:endermite": 1
+    }
+  },
+  "DataVersion": 4903
+}

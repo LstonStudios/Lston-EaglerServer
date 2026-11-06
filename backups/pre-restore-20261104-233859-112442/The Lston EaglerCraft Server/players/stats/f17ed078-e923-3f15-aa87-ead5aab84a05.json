@@ -1,0 +1,34 @@
+{
+  "stats": {
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 13097,
+      "minecraft:fall_one_cm": 356,
+      "minecraft:walk_one_cm": 13200,
+      "minecraft:total_world_time": 13097,
+      "minecraft:leave_game": 3,
+      "minecraft:sneak_time": 59,
+      "minecraft:play_time": 13097,
+      "minecraft:damage_dealt": 8,
+      "minecraft:open_shulker_box": 5,
+      "minecraft:jump": 23,
+      "minecraft:time_since_death": 13097
+    },
+    "minecraft:picked_up": {
+      "minecraft:enchanted_golden_apple": 64,
+      "minecraft:axolotl_bucket": 1,
+      "minecraft:purple_shulker_box": 2,
+      "minecraft:warden_spawn_egg": 1,
+      "minecraft:golden_carrot": 64
+    },
+    "minecraft:mined": {
+      "minecraft:short_grass": 1,
+      "minecraft:purple_shulker_box": 1
+    },
+    "minecraft:used": {
+      "minecraft:diamond_pickaxe": 1,
+      "minecraft:written_book": 1,
+      "minecraft:purple_shulker_box": 1
+    }
+  },
+  "DataVersion": 4903
+}

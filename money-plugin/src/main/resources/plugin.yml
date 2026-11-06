@@ -5,31 +5,26 @@ main: net.lstonstudios.money.MoneyPlugin
 author: LstonStudios
 description: Earn money by mining and killing, then spend it in shops.
 commands:
-  mgive:
-    aliases: [moneygive]
-    description: Send money to a player (admins give unlimited money).
-    usage: /mgive <player> <amount>
-  minfo:
-    aliases: [moneyinfo]
+  balance:
     description: Show a player's balance.
-    usage: /minfo [player]
-  mhelp:
-    aliases: [moneyhelp]
-    description: Explain how the money system works.
-    usage: /mhelp
+    usage: /balance [player]
+  pay:
+    description: Send money to players; admins can grant money.
+    usage: /pay <player|selector> <amount>
+  sell:
+    description: Sell items from your main hand.
+    usage: /sell [amount]
   sinfo:
     aliases: [serverinfo]
     description: Get a server guide paper.
     usage: /sinfo
   cshop:
-    aliases: [moneyshop, customshop]
-    description: Edit or preview an item shop (1-5). Admins edit it; members buy from it.
-    usage: /cshop <1-5> [view|section <color> <name>|rename <name>|setblock|delblock]
+    description: Buy custom items; admins can edit custom shops.
+    usage: /cshop [1-5] [view|section <color> <name>|rename <name>|setblock|delblock]
   shop:
-    description: Buy individual items from the shop (admins can edit with /cshop).
-    usage: /shop [1-5]
+    description: Buy individual items from the shop.
+    usage: /shop [1-6]
   kit:
-    aliases: [kitshop, kits]
     description: Buy shulker box kits full of gear, weapons and food (1-5).
     usage: /kit [1-5]
   login:
@@ -70,19 +65,16 @@ commands:
     description: Freeze and silence a player for a number of minutes.
     usage: /timeout <player> <minutes|off> [reason]
     permission: money.moderate
-  mclear:
-    aliases: [moneyclear]
+  bankrupt:
     description: Reset a player's balance to zero.
-    usage: /mclear <player>
+    usage: /bankrupt <player>
     permission: money.admin
   mreload:
-    aliases: [moneyreload]
-    description: Reload the money configuration.
-    usage: /mreload
-    permission: money.admin
+    description: Reload the money configuration from the server console.
+    usage: mreload
 permissions:
   money.admin:
-    description: Allows giving money and managing shop blocks.
+    description: Allows granting money and managing shop blocks.
     default: op
   money.moderate:
     description: Allows muting and timing out players.

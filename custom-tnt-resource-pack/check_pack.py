@@ -22,7 +22,6 @@ OWNERS = {
     "gold_hoe": "Custom guns",
     "gold_sword": "Custom swords", "iron_sword": "Custom swords", "diamond_sword": "Custom swords",
     "stone_sword": "Custom swords", "wood_sword": "Custom swords", "diamond_axe": "Custom swords",
-    "gold_shovel": "Mace", "gold_pickaxe": "Spear", "gold_axe": "Spear (hand-tilt model while charging)",
     "nether_star": "Verity Box",
     "verity_head_happy": "Verity 3D body expression",
     "verity_head_joy": "Verity 3D body expression",
@@ -33,7 +32,6 @@ OWNERS = {
     "verity_head_evil": "Verity 3D body expression",
     "verity_head_blank": "Verity 3D body expression",
     "verity_demon": "Verity Demon model",
-    "prismarine_crystals": "Wind Burst",
 }
 
 

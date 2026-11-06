@@ -1,0 +1,52 @@
+{
+  "stats": {
+    "minecraft:used": {
+      "minecraft:elytra": 2,
+      "minecraft:netherite_chestplate": 1,
+      "minecraft:enchanted_golden_apple": 1,
+      "minecraft:light_blue_shulker_box": 1,
+      "minecraft:firework_rocket": 34
+    },
+    "minecraft:custom": {
+      "minecraft:damage_resisted": 12,
+      "minecraft:time_since_rest": 4968,
+      "minecraft:walk_one_cm": 54918,
+      "minecraft:leave_game": 3,
+      "minecraft:walk_under_water_one_cm": 287,
+      "minecraft:damage_taken": 1012,
+      "minecraft:play_time": 16099,
+      "minecraft:open_shulker_box": 3,
+      "minecraft:jump": 112,
+      "minecraft:time_since_death": 4963,
+      "minecraft:aviate_one_cm": 225402,
+      "minecraft:drop": 7,
+      "minecraft:sprint_one_cm": 32396,
+      "minecraft:open_chest": 1,
+      "minecraft:fall_one_cm": 31056,
+      "minecraft:swim_one_cm": 858,
+      "minecraft:total_world_time": 16099,
+      "minecraft:fly_one_cm": 7170,
+      "minecraft:walk_on_water_one_cm": 2996,
+      "minecraft:deaths": 3
+    },
+    "minecraft:mined": {
+      "minecraft:light_blue_shulker_box": 1,
+      "minecraft:grass_block": 3
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 1
+    },
+    "minecraft:picked_up": {
+      "minecraft:enchanted_golden_apple": 64,
+      "minecraft:light_blue_shulker_box": 2,
+      "minecraft:dirt": 3,
+      "minecraft:cobblestone": 6,
+      "minecraft:golden_carrot": 64
+    },
+    "minecraft:dropped": {
+      "minecraft:cobblestone": 6,
+      "minecraft:written_book": 1
+    }
+  },
+  "DataVersion": 4903
+}

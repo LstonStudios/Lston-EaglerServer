@@ -1,0 +1,80 @@
+{
+  "stats": {
+    "minecraft:mined": {
+      "minecraft:short_grass": 1,
+      "minecraft:tall_grass": 1,
+      "minecraft:wheat": 3
+    },
+    "minecraft:picked_up": {
+      "minecraft:diamond_horse_armor": 1,
+      "minecraft:brown_concrete": 53,
+      "minecraft:dirt": 189,
+      "minecraft:cobblestone": 7,
+      "minecraft:poppy": 1,
+      "minecraft:brown_wool": 76,
+      "minecraft:saddle": 1,
+      "minecraft:leather": 1,
+      "minecraft:bone": 1,
+      "minecraft:oak_sapling": 2,
+      "minecraft:iron_ingot": 5,
+      "minecraft:oak_log": 5,
+      "minecraft:dandelion": 2,
+      "minecraft:wheat_seeds": 14,
+      "minecraft:wheat": 2,
+      "minecraft:splash_potion": 1,
+      "minecraft:command_block_minecart": 27
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 14414,
+      "minecraft:walk_one_cm": 166813,
+      "minecraft:leave_game": 6,
+      "minecraft:horse_one_cm": 310404,
+      "minecraft:mob_kills": 2,
+      "minecraft:damage_taken": 805,
+      "minecraft:play_time": 71053,
+      "minecraft:damage_dealt": 853,
+      "minecraft:jump": 135,
+      "minecraft:time_since_death": 14410,
+      "minecraft:drop": 92,
+      "minecraft:sprint_one_cm": 13074,
+      "minecraft:fall_one_cm": 1486,
+      "minecraft:total_world_time": 71053,
+      "minecraft:fly_one_cm": 24665,
+      "minecraft:walk_on_water_one_cm": 1824,
+      "minecraft:sneak_time": 161,
+      "minecraft:climb_one_cm": 3272,
+      "minecraft:deaths": 5
+    },
+    "minecraft:used": {
+      "minecraft:iron_golem_spawn_egg": 2,
+      "minecraft:splash_potion": 1,
+      "minecraft:horse_spawn_egg": 6,
+      "minecraft:mule_spawn_egg": 8,
+      "minecraft:milk_bucket": 2
+    },
+    "minecraft:killed": {
+      "minecraft:iron_golem": 1,
+      "minecraft:wolf": 1
+    },
+    "minecraft:dropped": {
+      "minecraft:wheat": 2,
+      "minecraft:oak_log": 5,
+      "minecraft:bone": 1,
+      "minecraft:bucket": 1,
+      "minecraft:mule_spawn_egg": 1,
+      "minecraft:dirt": 32,
+      "minecraft:poppy": 1,
+      "minecraft:wheat_seeds": 10,
+      "minecraft:iron_ingot": 5,
+      "minecraft:command_block_minecart": 25,
+      "minecraft:brown_concrete": 18,
+      "minecraft:splash_potion": 1,
+      "minecraft:brown_wool": 40,
+      "minecraft:oak_sapling": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:iron_golem": 1
+    }
+  },
+  "DataVersion": 4903
+}

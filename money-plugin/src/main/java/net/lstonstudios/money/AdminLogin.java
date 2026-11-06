@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -29,11 +30,17 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.permissions.PermissionAttachment;
 
-// Admins (operators) must sign in with /login before they can act. Members are never affected.
+// Staff must sign in with /login before acting and are protected from targeted commands and damage.
 final class AdminLogin implements Listener {
     private final MoneyPlugin plugin;
     private final File file;
@@ -56,7 +63,8 @@ final class AdminLogin implements Listener {
             "minecraft.command.selector",
             "minecraft.command.give", "minecraft.command.xp", "minecraft.command.experience", "bukkit.command.give",
             "bukkit.command.xp", "money.admin", "customtnt.admin", "customability.admin",
-            "customitems.admin", "customgun.admin", "spawnmobs.use", "usernameeffects.admin"};
+            "customitems.admin", "customgun.admin", "spawnmobs.use", "usernameeffects.admin",
+            "orbital.use", "orbital.give"};
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
 
     // Admins can only moderate (ban, kick, mute, timeout, gamemode, tp). Ops can do everything.
@@ -80,12 +88,14 @@ final class AdminLogin implements Listener {
         sender.sendMessage(ChatColor.WHITE + "  /mute|/unmute <player>, /timeout <player> <minutes|off>");
         sender.sendMessage(ChatColor.YELLOW + "Vanilla: " + ChatColor.WHITE + "/kill /tp /give /xp /summon (selectors like @a @s @p @r @e allowed)");
         sender.sendMessage(ChatColor.YELLOW + "Money: " + ChatColor.WHITE
-                + "/mgive (unlimited), /mclear <player>, /mreload");
-        sender.sendMessage(ChatColor.WHITE + "  /cshop <1-5> opens the shop editor; /cshop <n> view|rename|section|setblock|delblock");
+                + "/pay <player|selector> <amount> (unlimited for admins), /bankrupt <player>");
+        sender.sendMessage(ChatColor.GRAY + "  /pay accepts player selectors: @a @e @n @p @r @s (and selector filters).");
+        sender.sendMessage(ChatColor.GRAY + "  Run mreload in the server console to reload the money config.");
+        sender.sendMessage(ChatColor.WHITE + "  /cshop opens custom items; /cshop <1-5> opens the shop editor; /cshop <n> view|rename|section|setblock|delblock");
         sender.sendMessage(ChatColor.YELLOW + "Custom items: " + ChatColor.WHITE
                 + "/customtnt, /customability, /customsword, /cgun (guns), /rldcustomtnt");
         sender.sendMessage(ChatColor.YELLOW + "Other: " + ChatColor.WHITE
-                + "/spawn <entity>, /nameeffect set|clear <player> or reload");
+                + "/spawn <entity>, /nameeffect set|clear <player> or reload, /orbital");
         sender.sendMessage(ChatColor.YELLOW + "Account: " + ChatColor.WHITE
                 + "/login <password> [new-password], /permhelp");
         if (op) {
@@ -330,13 +340,134 @@ final class AdminLogin implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onCommand(PlayerCommandPreprocessEvent event) {
-        if (!needsLogin(event.getPlayer())) {
-            return;
+        Player sender = event.getPlayer();
+        if (needsLogin(sender)) {
+            String first = event.getMessage().split(" ")[0].toLowerCase();
+            if (!first.equals("/login")) {
+                event.setCancelled(true);
+                prompt(sender);
+                return;
+            }
         }
-        String first = event.getMessage().split(" ")[0].toLowerCase();
-        if (!first.equals("/login")) {
+        if (targetsStaff(sender, event.getMessage())) {
             event.setCancelled(true);
-            prompt(event.getPlayer());
+            sender.sendMessage(ChatColor.RED + "That admin or op is still logging in and cannot be targeted yet.");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onServerCommand(ServerCommandEvent event) {
+        if (targetsStaff(event.getSender(), event.getCommand())) {
+            event.setCancelled(true);
+            event.getSender().sendMessage(ChatColor.RED + "That admin or op is still logging in and cannot be targeted yet.");
+        }
+    }
+
+    private boolean targetsStaff(CommandSender sender, String input) {
+        String[] parts = input.trim().replaceFirst("^/", "").split("\\s+");
+        if (parts.length == 0 || parts[0].isEmpty()) {
+            return false;
+        }
+        String command = parts[0].toLowerCase(java.util.Locale.ROOT);
+        int namespace = command.indexOf(':');
+        if (namespace >= 0) {
+            command = command.substring(namespace + 1);
+        }
+        if (HARMLESS_COMMANDS.contains(command)) {
+            return false;
+        }
+
+        // Every selector anywhere in the line, including ones with spaces inside [...] filters
+        java.util.regex.Matcher selectors = SELECTOR.matcher(input);
+        while (selectors.find()) {
+            if (selectsStaff(sender, selectors.group())) {
+                return true;
+            }
+        }
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].startsWith("@") && selectsStaff(sender, parts[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final Pattern SELECTOR = Pattern.compile("@[a-zA-Z]+(?:\\[[^\\]]*\\])?");
+    private static final Set<String> HARMLESS_COMMANDS = Set.of("login", "pay", "balance", "bal", "msg", "tell", "w",
+            "whisper", "r", "reply", "me", "say", "help", "?", "list", "sell", "shop", "cshop", "kit", "stop");
+
+    private boolean selectsStaff(CommandSender sender, String target) {
+        if (target.startsWith("@")) {
+            try {
+                for (org.bukkit.entity.Entity entity : Bukkit.selectEntities(sender, target)) {
+                    if (entity instanceof Player && needsLogin((Player) entity)
+                            && !isSender(sender, (Player) entity)) {
+                        return true;
+                    }
+                }
+            } catch (IllegalArgumentException ignored) {
+                return false;
+            }
+            return false;
+        }
+        String name = target.replaceAll("^[\"']+|[\"',]+$", "");
+        if (name.isEmpty()) {
+            return false;
+        }
+        // Names are case-insensitive in commands, so /kill steve must still hit Steve
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (online.getName().equalsIgnoreCase(name)) {
+                return needsLogin(online) && !isSender(sender, online);
+            }
+        }
+        if (name.length() == 36 && name.indexOf('-') == 8) {
+            try {
+                Player byId = Bukkit.getPlayer(UUID.fromString(name));
+                return byId != null && needsLogin(byId) && !isSender(sender, byId);
+            } catch (IllegalArgumentException ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSender(CommandSender sender, Player target) {
+        return sender instanceof Player && ((Player) sender).getUniqueId().equals(target.getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onStaffDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player && needsLogin((Player) event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onStaffTeleport(PlayerTeleportEvent event) {
+        if (needsLogin(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onStaffKick(PlayerKickEvent event) {
+        if (needsLogin(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onStaffPotionEffect(EntityPotionEffectEvent event) {
+        if (event.getEntity() instanceof Player && needsLogin((Player) event.getEntity())
+                && event.getNewEffect() != null) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onStaffFoodChange(FoodLevelChangeEvent event) {
+        if (event.getEntity() instanceof Player && needsLogin((Player) event.getEntity())) {
+            event.setCancelled(true);
         }
     }
 

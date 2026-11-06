@@ -1147,6 +1147,31 @@ var TeaVM=TeaVM||{};TeaVM.wasmGC=TeaVM.wasmGC||(()=>{let n=new Map;let e=null;le
 	<script type="text/javascript">
 		// Keeps this server pinned in the client's multiplayer list. The client
 		// stores the list as NBT in servers.dat inside its IndexedDB filesystem.
+		// The client saves its server list to a temporary "servers<random>.dat" file
+		// and never replaces servers.dat with it, so added servers vanish on reload.
+		// Copy every non-empty temp save over servers.dat as soon as it is written.
+		(function () {
+			try {
+				var origPut = IDBObjectStore.prototype.put;
+				var TEMP = /^servers[A-Za-z0-9]+\.dat$/;
+				IDBObjectStore.prototype.put = function (v) {
+					var req = origPut.apply(this, arguments);
+					try {
+						if (v && typeof v.path === "string" && TEMP.test(v.path) && v.data && v.data.byteLength > 0) {
+							var db = this.transaction.db, data = v.data.slice(0), tmp = v.path;
+							req.addEventListener("success", function () {
+								try {
+									var st = db.transaction("filesystem", "readwrite").objectStore("filesystem");
+									origPut.call(st, { path: "servers.dat", data: data });
+									st.delete(tmp);
+								} catch (e) {}
+							});
+						}
+					} catch (e) {}
+					return req;
+				};
+			} catch (e) {}
+		})();
 		window.__eagSeedServerList = async function () {
 			try {
 				var NAME = "The Lston EaglerCraft Server";
@@ -1214,27 +1239,60 @@ var TeaVM=TeaVM||{};TeaVM.wasmGC=TeaVM.wasmGC||(()=>{let n=new Map;let e=null;le
 					q.onerror = function () { rej(q.error); };
 					q.onblocked = function () { rej(new Error("blocked")); };
 				});
+				async function readNbt(buf) {
+					var head = new Uint8Array(buf);
+					if (head.length > 1 && head[0] === 0x1f && head[1] === 0x8b) {
+						var ds = new Response(new Blob([head]).stream().pipeThrough(new DecompressionStream("gzip")));
+						return { root: parse(await ds.arrayBuffer()), gz: true };
+					}
+					return { root: parse(buf), gz: false };
+				}
 				var rec = await new Promise(function (res, rej) {
 					var q = db.transaction("filesystem").objectStore("filesystem").get("servers.dat");
 					q.onsuccess = function () { res(q.result); };
 					q.onerror = function () { rej(q.error); };
 				});
-				var root;
-				if (rec && rec.data) {
-					var head = new Uint8Array(rec.data);
-					if (head.length > 1 && head[0] === 0x1f && head[1] === 0x8b) { db.close(); return; }
-					root = parse(rec.data);
-				} else {
-					root = {};
+				var temps = await new Promise(function (res, rej) {
+					var out = [];
+					var q = db.transaction("filesystem").objectStore("filesystem").openCursor();
+					q.onsuccess = function () {
+						var c = q.result;
+						if (c) {
+							if (/^servers[A-Za-z0-9]+\.dat$/.test(c.key)) out.push({ path: c.key, data: c.value && c.value.data });
+							c.continue();
+						} else res(out);
+					};
+					q.onerror = function () { rej(q.error); };
+				});
+				var root = {}, gz = false;
+				if (rec && rec.data && rec.data.byteLength > 0) {
+					var cur = await readNbt(rec.data);
+					root = cur.root;
+					gz = cur.gz;
 				}
 				if (!root.servers || root.servers.t !== 9) root.servers = { t: 9, v: { et: 10, items: [] } };
 				var list = root.servers.v;
+				var seen = {};
+				function sig(it) { return (it.name ? it.name.v : "") + "|" + (it.ip ? it.ip.v : ""); }
+				for (var si = 0; si < list.items.length; si++) seen[sig(list.items[si])] = true;
+				for (var ti = 0; ti < temps.length; ti++) {
+					if (!temps[ti].data || temps[ti].data.byteLength === 0) continue;
+					try {
+						var tl = (await readNbt(temps[ti].data)).root.servers;
+						if (tl && tl.t === 9) {
+							for (var tj = 0; tj < tl.v.items.length; tj++) {
+								var it = tl.v.items[tj];
+								if (!seen[sig(it)]) { seen[sig(it)] = true; list.items.push(it); }
+							}
+						}
+					} catch (e) {}
+				}
 				var entry = null;
 				for (var i = 0; i < list.items.length; i++) {
 					var nm = list.items[i].name;
 					if (nm && nm.v === NAME) { entry = list.items[i]; break; }
 				}
-				var changed = false;
+				var changed = temps.length > 0;
 				if (!entry) {
 					entry = {};
 					list.et = 10;
@@ -1247,9 +1305,14 @@ var TeaVM=TeaVM||{};TeaVM.wasmGC=TeaVM.wasmGC||(()=>{let n=new Map;let e=null;le
 				setStr("name", NAME);
 				if (!entry.hidden) { entry.hidden = { t: 1, v: 0 }; changed = true; }
 				if (changed) {
+					var outBuf = serialize(root);
+					if (gz) {
+						outBuf = await new Response(new Blob([outBuf]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
+					}
 					await new Promise(function (res, rej) {
 						var tx = db.transaction("filesystem", "readwrite");
-						tx.objectStore("filesystem").put({ path: "servers.dat", data: serialize(root) });
+						tx.objectStore("filesystem").put({ path: "servers.dat", data: outBuf });
+						for (var di = 0; di < temps.length; di++) tx.objectStore("filesystem").delete(temps[di].path);
 						tx.oncomplete = function () { res(); };
 						tx.onerror = function () { rej(tx.error); };
 					});

@@ -3,6 +3,7 @@
 	"remoteEnv": {
 		"PATH": "${containerWorkspaceFolder}/bin:${containerWorkspaceFolder}:${containerEnv:PATH}"
 	},
+	"postStartCommand": "bash /workspaces/EaglerServer-1.12/bin/always-on",
 	"forwardPorts": [8081, 8082, 25565],
 	"portsAttributes": {
 		"8081": {

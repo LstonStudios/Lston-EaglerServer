@@ -1,0 +1,93 @@
+{
+  "stats": {
+    "minecraft:killed": {
+      "minecraft:warden": 1,
+      "minecraft:iron_golem": 1,
+      "minecraft:wolf": 1
+    },
+    "minecraft:picked_up": {
+      "minecraft:egg": 1,
+      "minecraft:carrot": 10,
+      "minecraft:poppy": 2,
+      "minecraft:bone": 1,
+      "minecraft:iron_ingot": 13,
+      "minecraft:wind_charge": 177,
+      "minecraft:crossbow": 1,
+      "minecraft:potato": 32,
+      "minecraft:sculk_catalyst": 64,
+      "minecraft:wheat_seeds": 17,
+      "minecraft:wheat": 6,
+      "minecraft:splash_potion": 1,
+      "minecraft:paper": 1,
+      "minecraft:sculk_shrieker": 2,
+      "minecraft:golden_apple": 128
+    },
+    "minecraft:used": {
+      "minecraft:golden_apple": 8,
+      "minecraft:warden_spawn_egg": 139,
+      "minecraft:iron_golem_spawn_egg": 9,
+      "minecraft:wind_charge": 12,
+      "minecraft:splash_potion": 1,
+      "minecraft:crossbow": 1,
+      "minecraft:calcite": 149,
+      "minecraft:potato": 10,
+      "minecraft:milk_bucket": 2
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 3,
+      "minecraft:zombified_piglin": 1,
+      "minecraft:iron_golem": 2,
+      "minecraft:warden": 1
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 19547,
+      "minecraft:walk_one_cm": 336773,
+      "minecraft:leave_game": 9,
+      "minecraft:walk_under_water_one_cm": 280,
+      "minecraft:mob_kills": 6,
+      "minecraft:damage_taken": 2712,
+      "minecraft:play_time": 119211,
+      "minecraft:damage_dealt": 1322,
+      "minecraft:open_shulker_box": 3,
+      "minecraft:damage_absorbed": 90,
+      "minecraft:jump": 369,
+      "minecraft:time_since_death": 19539,
+      "minecraft:damage_dealt_absorbed": 6,
+      "minecraft:drop": 140,
+      "minecraft:sprint_one_cm": 49483,
+      "minecraft:inspect_dispenser": 1,
+      "minecraft:fall_one_cm": 5144,
+      "minecraft:total_world_time": 119211,
+      "minecraft:fly_one_cm": 126881,
+      "minecraft:interact_with_anvil": 2,
+      "minecraft:walk_on_water_one_cm": 1827,
+      "minecraft:climb_one_cm": 3384,
+      "minecraft:deaths": 14,
+      "minecraft:player_kills": 3
+    },
+    "minecraft:mined": {
+      "minecraft:short_grass": 3,
+      "minecraft:tall_grass": 4,
+      "minecraft:potatoes": 8,
+      "minecraft:wheat": 6,
+      "minecraft:carrots": 2
+    },
+    "minecraft:dropped": {
+      "minecraft:potato": 27,
+      "minecraft:wheat": 6,
+      "minecraft:bone": 1,
+      "minecraft:bucket": 1,
+      "minecraft:egg": 1,
+      "minecraft:poppy": 2,
+      "minecraft:carrot": 10,
+      "minecraft:wheat_seeds": 16,
+      "minecraft:iron_ingot": 8,
+      "minecraft:splash_potion": 1,
+      "minecraft:paper": 1,
+      "minecraft:sculk_catalyst": 64,
+      "minecraft:sculk_shrieker": 2,
+      "minecraft:crossbow": 1
+    }
+  },
+  "DataVersion": 4903
+}

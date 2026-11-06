@@ -16,6 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -151,8 +153,8 @@ public final class VerityPlugin extends JavaPlugin implements TabExecutor {
         sender.sendMessage("§e/verityhelp §7- show this list");
         if (sender.hasPermission("verity.admin")) {
             sender.sendMessage("§6Admin:");
-            sender.sendMessage("§e/verity <targets> [amount] §7- give Verity Boxes (@a, @s, @p, @r or names)");
-            sender.sendMessage("§e/verity phase <player> <1-4> §7- set one player's Verity phase");
+            sender.sendMessage("§e/verity <targets> [amount] §7- give Verity Boxes (player names or selectors)");
+            sender.sendMessage("§e/verity phase <targets> <1-4> §7- set selected players' Verity phase");
             sender.sendMessage("§e/verityphase <1-4> §7- set every Verity's phase");
             sender.sendMessage("§e/verity killall §7- kill every Verity");
         }
@@ -165,7 +167,7 @@ public final class VerityPlugin extends JavaPlugin implements TabExecutor {
             return true;
         }
         if (args.length != 3) {
-            sender.sendMessage("§eUsage: /verity phase <player> <1-4>");
+            sender.sendMessage("§eUsage: /verity phase <player|selector> <1-4>");
             return true;
         }
         int value;
@@ -304,54 +306,31 @@ public final class VerityPlugin extends JavaPlugin implements TabExecutor {
         return true;
     }
 
-    /** Resolves @a, @s, @p, @r or a (partial) player name. Returns null after reporting an error. */
+    /** Resolves a vanilla entity selector to players, or accepts a (partial) player name. */
     private List<Player> resolve(CommandSender sender, String sel) {
         List<Player> out = new ArrayList<>();
-        String lower = sel.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("@")) {
-            switch (lower) {
-                case "@a":
-                    out.addAll(Bukkit.getOnlinePlayers());
-                    break;
-                case "@s":
-                    if (!(sender instanceof Player)) {
-                        sender.sendMessage("§c@s needs a player sender.");
-                        return null;
+        if (sel.startsWith("@")) {
+            try {
+                Method selector = Bukkit.class.getMethod("selectEntities", CommandSender.class, String.class);
+                Object selected = selector.invoke(null, sender, sel);
+                for (Object entity : (List<?>) selected) {
+                    if (entity instanceof Player) {
+                        out.add((Player) entity);
                     }
-                    out.add((Player) sender);
-                    break;
-                case "@p": {
-                    Location from = sender instanceof Player ? ((Player) sender).getLocation()
-                            : sender instanceof BlockCommandSender ? ((BlockCommandSender) sender).getBlock().getLocation()
-                            : null;
-                    if (from == null) {
-                        sender.sendMessage("§c@p needs a player or command block sender.");
-                        return null;
-                    }
-                    Player best = null;
-                    double bd = Double.MAX_VALUE;
-                    for (Player p : from.getWorld().getPlayers()) {
-                        double d = p.getLocation().distanceSquared(from);
-                        if (d < bd) {
-                            bd = d;
-                            best = p;
-                        }
-                    }
-                    if (best != null) {
-                        out.add(best);
-                    }
-                    break;
                 }
-                case "@r": {
-                    List<Player> all = new ArrayList<>(Bukkit.getOnlinePlayers());
-                    if (!all.isEmpty()) {
-                        out.add(all.get(random.nextInt(all.size())));
-                    }
-                    break;
-                }
-                default:
-                    sender.sendMessage("§cUnsupported selector: " + sel + " (use @a, @s, @p, @r or a name).");
+            } catch (NoSuchMethodException exception) {
+                if (!resolveLegacySelector(sender, sel, out)) {
                     return null;
+                }
+            } catch (InvocationTargetException exception) {
+                Throwable cause = exception.getCause();
+                sender.sendMessage("§cInvalid target selector: "
+                        + (cause == null || cause.getMessage() == null ? exception.getMessage() : cause.getMessage()));
+                return null;
+            } catch (IllegalAccessException | SecurityException exception) {
+                getLogger().severe("Could not invoke the server's target selector: " + exception.getMessage());
+                sender.sendMessage("§cCould not resolve target selector.");
+                return null;
             }
         } else {
             Player p = Bukkit.getPlayerExact(sel);
@@ -370,6 +349,57 @@ public final class VerityPlugin extends JavaPlugin implements TabExecutor {
         return out;
     }
 
+    private boolean resolveLegacySelector(CommandSender sender, String selector, List<Player> out) {
+        switch (selector.toLowerCase(Locale.ROOT)) {
+            case "@a":
+            case "@e":
+            case "@e[type=player]":
+            case "@e[type=minecraft:player]":
+                out.addAll(Bukkit.getOnlinePlayers());
+                return true;
+            case "@s":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§c@s needs a player sender.");
+                    return false;
+                }
+                out.add((Player) sender);
+                return true;
+            case "@p":
+            case "@n": {
+                Location from = sender instanceof Player ? ((Player) sender).getLocation()
+                        : sender instanceof BlockCommandSender ? ((BlockCommandSender) sender).getBlock().getLocation()
+                        : null;
+                if (from == null) {
+                    sender.sendMessage("§c" + selector + " needs a player or command block sender.");
+                    return false;
+                }
+                Player nearest = null;
+                double nearestDistance = Double.MAX_VALUE;
+                for (Player player : from.getWorld().getPlayers()) {
+                    double distance = player.getLocation().distanceSquared(from);
+                    if (distance < nearestDistance) {
+                        nearest = player;
+                        nearestDistance = distance;
+                    }
+                }
+                if (nearest != null) {
+                    out.add(nearest);
+                }
+                return true;
+            }
+            case "@r": {
+                List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+                if (!players.isEmpty()) {
+                    out.add(players.get(random.nextInt(players.size())));
+                }
+                return true;
+            }
+            default:
+                sender.sendMessage("§cThis server does not support selector filters for " + selector + ".");
+                return false;
+        }
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> out = new ArrayList<>();
@@ -382,12 +412,14 @@ public final class VerityPlugin extends JavaPlugin implements TabExecutor {
             if (args.length == 1) {
                 addMatches(out, args[0], Arrays.asList("kill"));
                 if (admin) {
-                    addMatches(out, args[0], Arrays.asList("phase", "killall", "@a", "@s", "@p", "@r"));
+                    addMatches(out, args[0], Arrays.asList("phase", "killall", "@a", "@e", "@n", "@p", "@r", "@s",
+                            "@e[type=player]"));
                     addPlayers(out, args[0]);
                 }
             } else if (admin && args[0].equalsIgnoreCase("phase")) {
                 if (args.length == 2) {
-                    addMatches(out, args[1], Arrays.asList("@a", "@s", "@p", "@r"));
+                    addMatches(out, args[1], Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s",
+                            "@e[type=player]"));
                     addPlayers(out, args[1]);
                 } else if (args.length == 3) {
                     addMatches(out, args[2], Arrays.asList("1", "2", "3", "4"));

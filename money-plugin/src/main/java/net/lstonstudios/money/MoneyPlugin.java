@@ -24,9 +24,11 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -52,17 +54,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public final class MoneyPlugin extends JavaPlugin implements Listener {
+public final class MoneyPlugin extends JavaPlugin implements Listener, TabCompleter {
 
     private static final int PLACED_LIMIT = 200000;
     private static final int SHOP_COUNT = 5;
     private static final int DEFAULT_ITEM_SHOP = 3;
+    private static final int DEFAULT_CUSTOM_SHOP = 1;
+    static final long MAX_ITEM_VALUE = 1_000_000L;
 
     private final Map<UUID, Long> balances = new LinkedHashMap<>();
     private final Map<String, Integer> shopBlocks = new HashMap<>();
     private AdminLogin adminLogin;
     private Moderation moderation;
     private KitShop kitShop;
+    private CombatShop combatShop;
     private final Set<UUID> guideReceived = new HashSet<>();
     private final Set<String> placedBlocks = new HashSet<>();
     private final Shop[] shops = new Shop[SHOP_COUNT];
@@ -222,9 +227,12 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
         kitShop = new KitShop(this);
         getServer().getPluginManager().registerEvents(kitShop, this);
-        for (String name : new String[] {"mgive", "minfo", "mhelp", "sinfo", "cshop", "shop", "kit", "login", "admin", "deadmin", "op", "deop", "mute", "unmute", "timeout", "unban", "permhelp", "mreload", "mclear"}) {
+        combatShop = new CombatShop(this);
+        getServer().getPluginManager().registerEvents(combatShop, this);
+        for (String name : new String[] {"balance", "pay", "sell", "sinfo", "cshop", "shop", "kit", "login", "admin", "deadmin", "op", "deop", "mute", "unmute", "timeout", "unban", "permhelp", "mreload", "bankrupt"}) {
             getCommand(name).setExecutor(this);
         }
+        getCommand("pay").setTabCompleter(this);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -364,7 +372,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                 e.material = material;
                 e.amount = raw.get("amount") instanceof Number
                         ? Math.max(1, Math.min(64, ((Number) raw.get("amount")).intValue())) : 1;
-                e.price = Math.max(0, ((Number) raw.get("price")).longValue());
+                e.price = Math.min(MAX_ITEM_VALUE, Math.max(0, ((Number) raw.get("price")).longValue()));
                 e.name = raw.get("name") == null ? null : String.valueOf(raw.get("name"));
                 e.description = raw.get("description") == null ? null : String.valueOf(raw.get("description"));
                 e.command = raw.get("command") == null ? null : String.valueOf(raw.get("command"));
@@ -386,7 +394,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             Entry e = slot.getValue();
             getConfig().set(path + "material", e.material.name());
             getConfig().set(path + "amount", e.amount);
-            getConfig().set(path + "price", e.price);
+            getConfig().set(path + "price", Math.min(MAX_ITEM_VALUE, e.price));
             if (e.name != null) {
                 getConfig().set(path + "name", e.name);
             }
@@ -428,7 +436,8 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             Entry e = new Entry();
             e.material = material;
             e.amount = Math.max(1, Math.min(64, section.getInt("amount", 1)));
-            e.price = section.getLong("price", DISPLAY_ONLY);
+            long price = section.getLong("price", DISPLAY_ONLY);
+            e.price = price < 0 ? DISPLAY_ONLY : Math.min(MAX_ITEM_VALUE, price);
             e.name = section.getString("name");
             e.description = section.getString("description");
             e.command = section.getString("command");
@@ -503,6 +512,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             addDefaultItem(items, "GLASS", 32, "&f32 Glass", 96);
             addDefaultItem(items, "OAK_PLANKS", 64, "&664 Oak Planks", 128);
             addDefaultItem(items, "ENDER_PEARL", 8, "&d8 Ender Pearls", 200);
+            addDefaultItem(items, "FIREWORK_ROCKET", 16, "&c16 Firework Rockets", 160);
             addDefaultItem(items, "IRON_INGOT", 16, "&f16 Iron Ingots", 240);
             addDefaultItem(items, "OBSIDIAN", 16, "&516 Obsidian", 400);
             addDefaultItem(items, "GOLDEN_APPLE", 1, "&eGolden Apple", 500);
@@ -734,9 +744,9 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         meta.setAuthor("LstonStudios");
         meta.setPages(guidePages());
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "A survival server with custom TNTs,");
-        lore.add(ChatColor.GRAY + "5-use abilities, special swords and");
-        lore.add(ChatColor.GRAY + "a money system. Made by LstonStudios.");
+        lore.add(ChatColor.GRAY + "A PvP, team battles and survival server");
+        lore.add(ChatColor.GRAY + "with custom TNTs, 5-use abilities, special");
+        lore.add(ChatColor.GRAY + "swords and money. Made by LstonStudios.");
         lore.add(ChatColor.GRAY + "Includes the community rules.");
         lore.add("");
         lore.add(ChatColor.GREEN + "Right-click to read.");
@@ -750,16 +760,20 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         List<String> lines = new ArrayList<>();
         lines.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Welcome to the Lston Server!");
         lines.add(ChatColor.YELLOW + "About the server:");
-        lines.add(ChatColor.WHITE + " A survival server with custom TNTs, right-click abilities, special"
-                + " swords and a money system. It works with Eaglercraft and normal Minecraft 1.12 clients.");
-        lines.add(ChatColor.WHITE + " Accept the resource pack when asked: custom TNTs show up as rainbow"
-                + " command block minecarts in your inventory.");
+        lines.add(ChatColor.WHITE + " A server built around PvP, team battles and survival, with custom TNTs,"
+                + " right-click abilities, special swords and a money system. It works with the"
+                + " Eaglercraft 26.2 client.");
+        lines.add(ChatColor.WHITE + " Custom TNTs show up as command block minecarts in your inventory.");
         lines.add(ChatColor.WHITE + " You can style your own name, see the Name styling page.");
         lines.add(ChatColor.WHITE + " The Lston Server is made and run by LstonStudios, built for players"
-                + " who love big explosions, wild abilities and friendly competition.");
+                + " who love PvP, team battles and survival, big explosions and wild abilities.");
         lines.add(ChatColor.YELLOW + "Community:");
-        lines.add(ChatColor.WHITE + " Everyone is welcome here, new or experienced. Help new players, share"
-                + " what you find, team up, and have fun. Ask an admin if you have questions or ideas.");
+        lines.add(ChatColor.WHITE + " The Lston Server is built around three things: PvP, team battles and"
+                + " survival. Fight for fun in PvP, join or form a team for team battles, and build"
+                + " up your base and gear in survival.");
+        lines.add(ChatColor.WHITE + " Everyone is welcome, new or experienced. Help new players, share"
+                + " what you find, team up, and keep the fights friendly. Ask an admin if you have"
+                + " questions or ideas.");
         lines.add(ChatColor.YELLOW + "Rules:");
         lines.add(ChatColor.WHITE + " 1. Be respectful. No harassment, hate or spam in chat.");
         lines.add(ChatColor.WHITE + " 2. No cheating: no hacked clients, x-ray, duping or exploiting bugs"
@@ -775,12 +789,17 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                 + money(achievementReward) + ").");
         lines.add(ChatColor.GRAY + " Blocks you place yourself and creative mode pay nothing.");
         lines.add(ChatColor.YELLOW + "Money commands:");
-        lines.add(ChatColor.WHITE + " /minfo [player] - see a balance");
-        lines.add(ChatColor.WHITE + " /mgive <player> <amount> - send some of your money to a player");
-        lines.add(ChatColor.WHITE + " /shop [1-5] - buy individual items; no number opens the item shop");
-        lines.add(ChatColor.WHITE + " /cshop <1-5> - open or edit an item shop (admins)");
+        lines.add(ChatColor.WHITE + " /balance [player] - see a balance");
+        lines.add(ChatColor.WHITE + " /pay <player|selector> <amount> - send money to players");
+        lines.add(ChatColor.WHITE + " /sell [amount] - sell items in your hand; defaults to one");
+        lines.add(ChatColor.WHITE + " /shop [1-6] - combat items: armor, tools, food, ores, potions, blocks");
+        lines.add(ChatColor.WHITE + " /cshop [1-5] - buy custom items; admins use /cshop <n> to edit");
         lines.add(ChatColor.WHITE + " /kit [1-5] - buy shulker box kits (gear, weapons, food); pricier = better");
-        lines.add(ChatColor.WHITE + " /mhelp - list the money commands");
+        lines.add(ChatColor.WHITE + " Sell by rarity: common " + money(5) + ", uncommon " + money(10)
+                + ", rare " + money(50) + ", epic " + money(100) + ".");
+        lines.add(ChatColor.WHITE + " Legendary " + money(500) + ", mythic " + money(1000)
+                + "; max item/sale price " + money(MAX_ITEM_VALUE) + ".");
+        lines.add(ChatColor.WHITE + " Staff: /pay <player|selector> <amount> (admins grant money); admins edit with /cshop <1-5>.");
         lines.add(ChatColor.YELLOW + "Name styling (/nameeffect):");
         lines.add(ChatColor.WHITE + " /nameeffect set <before>|<after> adds text before and after your name in"
                 + " chat and above your head. The | splits the two parts; either can be empty.");
@@ -826,6 +845,19 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         lines.add(ChatColor.WHITE + " Explosives (no block damage): Grenade Launcher, Rocket Launcher, Dragon Cannon, Mini Nuke Launcher.");
         lines.add(ChatColor.WHITE + " Piercing: Railgun and Omega Cannon hit everything in line.");
         lines.add(ChatColor.WHITE + " Shop 2 also sells the custom swords.");
+        lines.add(ChatColor.YELLOW + "Kits (/kit [1-5]):");
+        lines.add(ChatColor.WHITE + " Shulker box kits full of gear, food and tools, from " + symbol
+                + "150 (Food Pack) up to " + symbol + "30000 (Ultimate Survival). Page 1 is starter kits,"
+                + " page 5 is legendary. Left-click to buy, right-click to preview.");
+        lines.add(ChatColor.YELLOW + "Custom swords:");
+        lines.add(ChatColor.WHITE + " Special swords with their own effects, sold in Shop 2. Staff can"
+                + " give them with /customsword.");
+        lines.add(ChatColor.YELLOW + "One-time passes:");
+        lines.add(ChatColor.WHITE + " A Pass Button only works when a player holding a One-Time Redstone"
+                + " Pass presses it, and the pass is used up. Good for paid doors and arena entrances.");
+        lines.add(ChatColor.YELLOW + "Eaglercraft 26.2:");
+        lines.add(ChatColor.WHITE + " The server runs Minecraft 26.2, so you play with the new Mace and Spear,"
+                + " the new blocks and the new Nether and End. Your old worlds were kept.");
         lines.add(ChatColor.GRAY + "Other shops may hold more items, so have a look around.");
         return lines;
     }
@@ -1046,11 +1078,37 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         return e;
     }
 
+    /**
+     * Lets players rearrange their own inventory while a menu is open. Anything that touches the menu itself,
+     * or could pull items out of it (shift-click, double-click collect), stays blocked.
+     */
+    static boolean blocksMenuClick(InventoryClickEvent event, Inventory top) {
+        if (event.getClickedInventory() == null) {
+            return false;
+        }
+        if (event.getClickedInventory() == top) {
+            return true;
+        }
+        org.bukkit.event.inventory.InventoryAction action = event.getAction();
+        return action == org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY
+                || action == org.bukkit.event.inventory.InventoryAction.COLLECT_TO_CURSOR;
+    }
+
+    static boolean dragTouchesMenu(InventoryDragEvent event) {
+        int size = event.getView().getTopInventory().getSize();
+        for (int slot : event.getRawSlots()) {
+            if (slot < size) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @EventHandler
     public void onShopClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
         if (top.getHolder() instanceof ItemShopHolder) {
-            event.setCancelled(true);
+            event.setCancelled(blocksMenuClick(event, top));
             if (event.getClickedInventory() != top || !(event.getWhoClicked() instanceof Player)) {
                 return;
             }
@@ -1068,12 +1126,12 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         if (!(top.getHolder() instanceof ShopHolder)) {
             return;
         }
-        event.setCancelled(true);
+        ShopHolder holder = (ShopHolder) top.getHolder();
+        event.setCancelled(holder.edit || blocksMenuClick(event, top));
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
         Player player = (Player) event.getWhoClicked();
-        ShopHolder holder = (ShopHolder) top.getHolder();
         if (holder.edit) {
             editClick(event, player, top, holder);
             return;
@@ -1177,7 +1235,8 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onShopDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof ShopHolder) {
+        Object holder = event.getView().getTopInventory().getHolder();
+        if (holder instanceof ShopHolder && (((ShopHolder) holder).edit || dragTouchesMenu(event))) {
             event.setCancelled(true);
         }
     }
@@ -1254,7 +1313,13 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Type a whole number, 'skip' or 'cancel'.");
+                player.sendMessage(ChatColor.RED + "Type a whole number from 0 to "
+                        + MAX_ITEM_VALUE + ", 'skip' or 'cancel'.");
+                return;
+            }
+            if (price > MAX_ITEM_VALUE) {
+                player.sendMessage(ChatColor.RED + "An item price cannot exceed "
+                        + money(MAX_ITEM_VALUE) + ".");
                 return;
             }
         }
@@ -1278,10 +1343,12 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         switch (command.getName().toLowerCase()) {
-            case "mgive":
-                return give(sender, args);
-            case "minfo":
-                return info(sender, args);
+            case "balance":
+                return balance(sender, args);
+            case "pay":
+                return pay(sender, args);
+            case "sell":
+                return sell(sender, args);
             case "login":
                 return adminLogin.login(sender, args);
             case "admin":
@@ -1306,7 +1373,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             case "unmute":
             case "timeout":
                 return moderation.command(sender, command.getName().toLowerCase(), args);
-            case "mclear":
+            case "bankrupt":
                 return clear(sender, args);
             case "sinfo":
                 if (!(sender instanceof Player)) {
@@ -1319,16 +1386,20 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
                 }
                 reader.sendMessage(ChatColor.GREEN + "Here is a new server guide book. Right-click it to read.");
                 return true;
-            case "mhelp":
-                help(sender);
-                return true;
             case "cshop":
                 return manageShopBlock(sender, args);
             case "shop":
-                return openItemShopCommand(sender, args);
+                return combatShop.command(sender, args);
             case "kit":
                 return kitShop.command(sender, args);
             case "mreload":
+                if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) {
+                    sender.sendMessage(ChatColor.RED + "Run mreload from the server console.");
+                    return true;
+                }
+                if (args.length != 0) {
+                    return false;
+                }
                 loadSettings();
                 sender.sendMessage(ChatColor.GREEN + "Money configuration reloaded.");
                 return true;
@@ -1350,14 +1421,140 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         return null;
     }
 
-    private boolean give(CommandSender sender, String[] args) {
-        if (args.length != 2) {
+    private boolean sell(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Only players can sell items.");
+            return true;
+        }
+        if (args.length > 1) {
             return false;
         }
-        OfflinePlayer target = findPlayer(args[0]);
-        if (target == null) {
-            sender.sendMessage(ChatColor.RED + "Unknown player: " + args[0]);
+        int amount = 1;
+        if (args.length == 1) {
+            try {
+                amount = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                amount = 0;
+            }
+        }
+        if (amount <= 0) {
+            sender.sendMessage(ChatColor.RED + "Amount must be a positive whole number.");
             return true;
+        }
+        Player player = (Player) sender;
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (held == null || held.getType() == Material.AIR) {
+            sender.sendMessage(ChatColor.RED + "Hold an item in your main hand to sell it.");
+            return true;
+        }
+        if (amount > held.getAmount()) {
+            sender.sendMessage(ChatColor.RED + "You are holding only " + held.getAmount() + " "
+                    + niceName(held.getType()) + ".");
+            return true;
+        }
+        long unitPrice = sellUnitPrice(held);
+        if (unitPrice <= 0) {
+            sender.sendMessage(ChatColor.RED + "That item has no sell value.");
+            return true;
+        }
+        long total;
+        try {
+            total = Math.multiplyExact(unitPrice, (long) amount);
+        } catch (ArithmeticException e) {
+            sender.sendMessage(ChatColor.RED + "That sale is too large.");
+            return true;
+        }
+        if (total > MAX_ITEM_VALUE) {
+            sender.sendMessage(ChatColor.RED + "A sale cannot exceed " + money(MAX_ITEM_VALUE)
+                    + ". Try selling fewer items.");
+            return true;
+        }
+        long balance = getBalance(player.getUniqueId());
+        if (balance > Long.MAX_VALUE - total) {
+            sender.sendMessage(ChatColor.RED + "Your balance is too high to receive this sale.");
+            return true;
+        }
+        if (amount == held.getAmount()) {
+            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        } else {
+            held.setAmount(held.getAmount() - amount);
+            player.getInventory().setItemInMainHand(held);
+        }
+        addBalance(player.getUniqueId(), total);
+        sender.sendMessage(ChatColor.GREEN + "Sold " + amount + " " + niceName(held.getType()) + " for "
+                + money(total) + ". Balance: " + money(getBalance(player.getUniqueId())));
+        return true;
+    }
+
+    private long sellUnitPrice(ItemStack item) {
+        Material material = item.getType();
+        Long blockValue = blockRewards.get(material);
+        if (blockValue != null) {
+            if (blockValue >= 8) {
+                return 1000;
+            }
+            if (blockValue >= 6) {
+                return 500;
+            }
+            if (blockValue >= 4) {
+                return 100;
+            }
+            if (blockValue >= 3) {
+                return 50;
+            }
+            if (blockValue >= 2) {
+                return 10;
+            }
+            return 5;
+        }
+        switch (material) {
+            case NETHER_STAR:
+            case DRAGON_EGG:
+            case ENCHANTED_GOLDEN_APPLE:
+            case HEART_OF_THE_SEA:
+            case ELYTRA:
+                return 1000;
+            case NETHERITE_INGOT:
+            case NETHERITE_BLOCK:
+            case TOTEM_OF_UNDYING:
+            case TRIDENT:
+            case SHULKER_SHELL:
+                return 500;
+            case DIAMOND:
+            case EMERALD:
+            case NETHERITE_SCRAP:
+            case DIAMOND_BLOCK:
+            case EMERALD_BLOCK:
+                return 100;
+            case GOLD_INGOT:
+            case IRON_INGOT:
+            case COPPER_INGOT:
+            case LAPIS_LAZULI:
+            case REDSTONE:
+            case QUARTZ:
+            case ENDER_PEARL:
+            case GOLDEN_APPLE:
+                return 10;
+            default:
+                org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+                String rarity = meta.hasRarity() ? meta.getRarity().name() : "COMMON";
+                switch (rarity) {
+                    case "UNCOMMON":
+                        return 10;
+                    case "RARE":
+                        return 50;
+                    case "EPIC":
+                        return 100;
+                    case "COMMON":
+                    default:
+                        return 5;
+                }
+        }
+    }
+
+    private boolean pay(CommandSender sender, String[] args) {
+        if (args.length != 2) {
+            return false;
         }
         long amount;
         try {
@@ -1370,26 +1567,83 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return true;
         }
         boolean unlimited = !(sender instanceof Player) || sender.hasPermission("money.admin");
+        List<OfflinePlayer> targets = new ArrayList<>();
+        if (args[0].startsWith("@")) {
+            Set<UUID> seen = new HashSet<>();
+            try {
+                for (Entity entity : Bukkit.selectEntities(sender, args[0])) {
+                    if (entity instanceof Player && seen.add(entity.getUniqueId())) {
+                        targets.add((Player) entity);
+                    }
+                }
+            } catch (IllegalArgumentException exception) {
+                sender.sendMessage(ChatColor.RED + "Invalid target selector: " + exception.getMessage());
+                return true;
+            }
+        } else {
+            OfflinePlayer target = findPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Unknown player: " + args[0]);
+                return true;
+            }
+            targets.add(target);
+        }
+        if (targets.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "No players matched " + args[0] + ".");
+            return true;
+        }
         if (!unlimited) {
             Player giver = (Player) sender;
-            if (giver.getUniqueId().equals(target.getUniqueId())) {
-                sender.sendMessage(ChatColor.RED + "You can't send money to yourself.");
+            targets.removeIf(target -> target.getUniqueId().equals(giver.getUniqueId()));
+            if (targets.isEmpty()) {
+                sender.sendMessage(ChatColor.RED + "You can't pay yourself.");
+                return true;
+            }
+            long total;
+            try {
+                total = Math.multiplyExact(amount, (long) targets.size());
+            } catch (ArithmeticException exception) {
+                sender.sendMessage(ChatColor.RED + "That selector has too many recipients for this amount.");
                 return true;
             }
             long balance = getBalance(giver.getUniqueId());
-            if (balance < amount) {
-                sender.sendMessage(ChatColor.RED + "You only have " + money(balance) + ".");
+            if (balance < total) {
+                sender.sendMessage(ChatColor.RED + "You need " + money(total) + " to pay "
+                        + money(amount) + " to each of " + targets.size() + " players; you have "
+                        + money(balance) + ".");
                 return true;
             }
-            balances.put(giver.getUniqueId(), balance - amount);
+            balances.put(giver.getUniqueId(), balance - total);
         }
-        addBalance(target.getUniqueId(), amount);
-        sender.sendMessage(ChatColor.GREEN + "Gave " + money(amount) + " to " + target.getName() + ".");
-        if (target.isOnline()) {
-            target.getPlayer().sendMessage(ChatColor.GREEN + "You received " + money(amount) + ". Balance: "
-                    + money(getBalance(target.getUniqueId())));
+        for (OfflinePlayer target : targets) {
+            addBalance(target.getUniqueId(), amount);
+            if (target.isOnline()) {
+                target.getPlayer().sendMessage(ChatColor.GREEN + "You received " + money(amount) + ". Balance: "
+                        + money(getBalance(target.getUniqueId())));
+            }
         }
+        sender.sendMessage(ChatColor.GREEN + "Paid " + money(amount) + " to each of " + targets.size()
+                + (targets.size() == 1 ? " player." : " players."));
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>();
+        if (command.getName().equalsIgnoreCase("pay") && args.length == 1) {
+            suggestions.addAll(Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s", "@e[type=player]"));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                suggestions.add(player.getName());
+            }
+        } else if ((command.getName().equalsIgnoreCase("pay")
+                || command.getName().equalsIgnoreCase("balance")) && args.length == 1) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                suggestions.add(player.getName());
+            }
+        }
+        String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
+        suggestions.removeIf(suggestion -> !suggestion.toLowerCase(java.util.Locale.ROOT).startsWith(prefix));
+        return suggestions;
     }
 
     private boolean clear(CommandSender sender, String[] args) {
@@ -1410,7 +1664,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         return true;
     }
 
-    private boolean info(CommandSender sender, String[] args) {
+    private boolean balance(CommandSender sender, String[] args) {
         if (args.length > 1) {
             return false;
         }
@@ -1424,56 +1678,12 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
         } else if (sender instanceof Player) {
             target = (Player) sender;
         } else {
-            sender.sendMessage("Usage: /minfo <player>");
+            sender.sendMessage("Usage: /balance <player>");
             return true;
         }
         sender.sendMessage(ChatColor.GOLD + target.getName() + "'s balance: " + ChatColor.YELLOW
                 + money(getBalance(target.getUniqueId())));
         return true;
-    }
-
-    private void help(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "=== Money Help ===");
-        sender.sendMessage(ChatColor.YELLOW + "Earn money: " + ChatColor.WHITE + "mine blocks ($1 common to $10 rare"
-                + "), kill mobs (" + money(mobReward) + "), kill players (" + money(playerReward) + "), earn achievements (" + money(achievementReward) + ").");
-        sender.sendMessage(ChatColor.GRAY + "Blocks you place yourself and creative mode pay nothing.");
-        sender.sendMessage(ChatColor.YELLOW + "/minfo [player]" + ChatColor.WHITE + " - see a balance");
-        sender.sendMessage(ChatColor.YELLOW + "/shop [1-5]" + ChatColor.WHITE
-                + " - buy individual items (or right-click a shop block)");
-        sender.sendMessage(ChatColor.YELLOW + "/kit [1-5]" + ChatColor.WHITE
-                + " - buy shulker box kits; the pricier the kit, the better the gear");
-        sender.sendMessage(ChatColor.YELLOW + "/mgive <player> <amount>" + ChatColor.WHITE
-                + (sender.hasPermission("money.admin") ? " - give money (unlimited for admins)"
-                        : " - send some of your money to a player"));
-        sender.sendMessage(ChatColor.YELLOW + "/mhelp" + ChatColor.WHITE + " - show this help");
-        sender.sendMessage(ChatColor.GRAY + "Every /m<name> command also works as /money<name>, e.g. /moneyinfo.");
-        if (sender.hasPermission("money.admin")) {
-
-            sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5>" + ChatColor.WHITE
-                    + " - (admin) opens the item shop in edit mode: move, copy and delete items, set prices");
-            sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> view" + ChatColor.WHITE
-                    + " - preview the member (buy-only) view");
-            sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> section <color> <name>" + ChatColor.WHITE
-                    + " - get a colored header pane to place in the shop");
-            sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> rename <name>" + ChatColor.WHITE
-                    + " - rename a shop menu (& color codes work)");
-            sender.sendMessage(ChatColor.YELLOW + "/cshop <1-5> setblock|delblock" + ChatColor.WHITE
-                    + " - make or unmake the block you look at a shop block");
-            sender.sendMessage(ChatColor.YELLOW + "/customtnt <player> <type|all> [amount]" + ChatColor.WHITE
-                    + " - give custom TNT (/rldcustomtnt reloads)");
-            sender.sendMessage(ChatColor.YELLOW + "/customability <player> <ability|all> [amount]" + ChatColor.WHITE
-                    + " - give abilities");
-            sender.sendMessage(ChatColor.YELLOW + "/customsword <player> <type|all> [amount]" + ChatColor.WHITE
-                    + " - give custom swords");
-            sender.sendMessage(ChatColor.YELLOW + "/spawn <entity> [x y z amount radius]" + ChatColor.WHITE
-                    + " - spawn many entities");
-            sender.sendMessage(ChatColor.YELLOW + "/nameeffect set|clear <player> ..." + ChatColor.WHITE
-                    + " - style anyone's name; /nameeffect reload");
-            sender.sendMessage(ChatColor.YELLOW + "/ban /unban /kick /mute /unmute /timeout /gamemode /kill /give /xp"
-                    + ChatColor.WHITE + " - moderation");
-            sender.sendMessage(ChatColor.YELLOW + "/mclear <player>" + ChatColor.WHITE + " - reset a balance");
-            sender.sendMessage(ChatColor.YELLOW + "/mreload" + ChatColor.WHITE + " - reload config");
-        }
     }
 
     private int parseShop(String text) {
@@ -1491,7 +1701,7 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return true;
         }
         if (args.length == 0) {
-            openShop((Player) sender, DEFAULT_ITEM_SHOP);
+            openMemberShop((Player) sender, DEFAULT_CUSTOM_SHOP);
             return true;
         }
         int shop = parseShop(args[0]);
@@ -1555,27 +1765,6 @@ public final class MoneyPlugin extends JavaPlugin implements Listener {
             return false;
         }
         dirty = true;
-        return true;
-    }
-
-    private boolean openItemShopCommand(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can open the item shop.");
-            return true;
-        }
-        if (args.length > 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /shop [1-" + SHOP_COUNT + "]");
-            return true;
-        }
-        int shop = DEFAULT_ITEM_SHOP;
-        if (args.length == 1) {
-            shop = parseShop(args[0]);
-            if (shop < 0) {
-                sender.sendMessage(ChatColor.RED + "Usage: /shop [1-" + SHOP_COUNT + "]");
-                return true;
-            }
-        }
-        openItemShop((Player) sender, shop);
         return true;
     }
 

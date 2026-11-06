@@ -117,6 +117,14 @@ else
   done
 fi
 
+for world in "${worlds[@]}"; do
+  # The server runs as root, so its files may not be readable by this user.
+  if [[ -n "$(find "$SERVER/$world" ! -readable -print -quit 2>/dev/null)" ]]; then
+    echo "Fixing file ownership in $world (needs sudo)..."
+    sudo chown -R "$(id -u):$(id -g)" "$SERVER/$world"
+  fi
+done
+
 mkdir -p "$BACKUPS"
 archive="$BACKUPS/$name.tar.gz"
 if [[ $# -eq 0 ]]; then

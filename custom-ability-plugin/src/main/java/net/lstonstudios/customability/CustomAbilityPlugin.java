@@ -43,6 +43,8 @@ import org.bukkit.util.Vector;
 
 public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
 
+    private static final org.bukkit.NamespacedKey ABILITY_KEY = new org.bukkit.NamespacedKey("customability", "ability");
+    private static final org.bukkit.NamespacedKey USES_KEY = new org.bukkit.NamespacedKey("customability", "uses");
     private static final String MARKER_PREFIX = "CustomAbility:";
     private static final String USES_MARKER_PREFIX = "CustomAbilityUses:";
     private static final int MAX_USES = 5;
@@ -147,6 +149,9 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
         ItemStack item = new ItemStack(a.material, amount);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(a.color + "" + ChatColor.BOLD + "\u2726 " + a.name + " \u2726");
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston", "ability_" + a.key));
+        meta.getPersistentDataContainer().set(ABILITY_KEY, org.bukkit.persistence.PersistentDataType.STRING, a.key);
+        meta.getPersistentDataContainer().set(USES_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, uses);
         List<String> lore = new ArrayList<String>();
         for (String line : wrap(a.description, 14)) {
             lore.add(ChatColor.GRAY + line);
@@ -190,7 +195,15 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
     }
 
     private int getUses(ItemStack item) {
-        if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasLore()) {
+        if (item == null || !item.hasItemMeta()) {
+            return MAX_USES;
+        }
+        Integer storedUses = item.getItemMeta().getPersistentDataContainer().get(USES_KEY,
+                org.bukkit.persistence.PersistentDataType.INTEGER);
+        if (storedUses != null) {
+            return Math.max(1, Math.min(MAX_USES, storedUses));
+        }
+        if (!item.getItemMeta().hasLore()) {
             return MAX_USES;
         }
         for (String line : item.getItemMeta().getLore()) {
@@ -220,7 +233,14 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
     }
 
     private Ability getAbility(ItemStack item) {
-        if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasLore()) {
+        if (item == null || !item.hasItemMeta()) {
+            return null;
+        }
+        String stored = item.getItemMeta().getPersistentDataContainer().get(ABILITY_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+        if (stored != null) {
+            return Ability.fromKey(stored);
+        }
+        if (!item.getItemMeta().hasLore()) {
             return null;
         }
         for (String line : item.getItemMeta().getLore()) {
@@ -242,7 +262,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
             return true;
         }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " <player|@a|@s|@p> <ability|all> [amount]");
+            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " <player|selector> <ability|all> [amount]");
             sender.sendMessage(ChatColor.GRAY + "Abilities: " + abilityKeys());
             return true;
         }
@@ -262,6 +282,9 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
             }
         }
         List<Player> targets = resolveTargets(sender, args[0]);
+        if (targets == null) {
+            return true;
+        }
         if (targets.isEmpty()) {
             sender.sendMessage(ChatColor.RED + "No matching players found.");
             return true;
@@ -281,7 +304,7 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> out = new ArrayList<String>();
         if (args.length == 1) {
-            out.addAll(Arrays.asList("@a", "@s", "@p"));
+            out.addAll(Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s", "@e[type=player]"));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 out.add(p.getName());
             }
@@ -314,11 +337,16 @@ public final class CustomAbilityPlugin extends JavaPlugin implements Listener {
 
     private List<Player> resolveTargets(CommandSender sender, String arg) {
         List<Player> list = new ArrayList<Player>();
-        if (arg.equals("@a")) {
-            list.addAll(Bukkit.getOnlinePlayers());
-        } else if (arg.equals("@s") || arg.equals("@p")) {
-            if (sender instanceof Player) {
-                list.add((Player) sender);
+        if (arg.startsWith("@")) {
+            try {
+                for (Entity entity : Bukkit.selectEntities(sender, arg)) {
+                    if (entity instanceof Player) {
+                        list.add((Player) entity);
+                    }
+                }
+            } catch (IllegalArgumentException exception) {
+                sender.sendMessage(ChatColor.RED + "Invalid target selector: " + exception.getMessage());
+                return null;
             }
         } else {
             Player p = Bukkit.getPlayerExact(arg);

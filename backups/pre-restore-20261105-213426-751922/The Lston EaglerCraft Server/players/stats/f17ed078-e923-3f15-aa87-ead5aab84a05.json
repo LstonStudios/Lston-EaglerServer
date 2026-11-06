@@ -1,0 +1,50 @@
+{
+  "stats": {
+    "minecraft:custom": {
+      "minecraft:damage_resisted": 207,
+      "minecraft:time_since_rest": 39019,
+      "minecraft:walk_one_cm": 189497,
+      "minecraft:leave_game": 4,
+      "minecraft:damage_taken": 321,
+      "minecraft:damage_dealt": 129,
+      "minecraft:play_time": 39019,
+      "minecraft:damage_absorbed": 225,
+      "minecraft:open_shulker_box": 7,
+      "minecraft:jump": 213,
+      "minecraft:time_since_death": 39019,
+      "minecraft:damage_dealt_absorbed": 145,
+      "minecraft:aviate_one_cm": 1235,
+      "minecraft:sprint_one_cm": 1206,
+      "minecraft:open_chest": 3,
+      "minecraft:fall_one_cm": 4847,
+      "minecraft:total_world_time": 39019,
+      "minecraft:fly_one_cm": 7539,
+      "minecraft:sneak_time": 87
+    },
+    "minecraft:picked_up": {
+      "minecraft:enchanted_golden_apple": 64,
+      "minecraft:axolotl_bucket": 1,
+      "minecraft:copper_ingot": 4,
+      "minecraft:purple_shulker_box": 2,
+      "minecraft:wheat_seeds": 1,
+      "minecraft:warden_spawn_egg": 1,
+      "minecraft:golden_carrot": 64,
+      "minecraft:gold_nugget": 15
+    },
+    "minecraft:mined": {
+      "minecraft:short_grass": 3,
+      "minecraft:purple_shulker_box": 1
+    },
+    "minecraft:used": {
+      "minecraft:diamond_pickaxe": 1,
+      "minecraft:splash_potion": 1,
+      "minecraft:netherite_sword": 28,
+      "minecraft:enchanted_golden_apple": 5,
+      "minecraft:diamond_sword": 6,
+      "minecraft:purple_shulker_box": 1,
+      "minecraft:written_book": 1,
+      "minecraft:mace": 3
+    }
+  },
+  "DataVersion": 4903
+}

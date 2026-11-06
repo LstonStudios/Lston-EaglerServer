@@ -57,7 +57,7 @@ final class KitShop implements Listener {
             this.name = name;
             this.color = color;
             this.box = box;
-            this.price = price;
+            this.price = Math.min(MoneyPlugin.MAX_ITEM_VALUE, Math.max(0, price));
             this.blurb = blurb;
         }
 
@@ -296,7 +296,7 @@ final class KitShop implements Listener {
 
         // ---- Page 5: Legendary ----
         pages.get(4).add(new Kit("Legendary Warrior", ChatColor.RED, Material.RED_SHULKER_BOX, 18000,
-                "Maxed mending armor, a god-tier blade, a Wind Burst mace and netherite spear.")
+                "Maxed mending armor, a god-tier blade, a Wind Burst mace, wind charges and netherite spear.")
                 .add(e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.AQUA_AFFINITY, 1, Enchantment.RESPIRATION, 3),
                         e(Material.DIAMOND_CHESTPLATE, prot, 4, unb, 3, mend, 1, Enchantment.THORNS, 2),
                         e(Material.DIAMOND_LEGGINGS, prot, 4, unb, 3, mend, 1),
@@ -305,6 +305,7 @@ final class KitShop implements Listener {
                         e(Material.DIAMOND_SWORD, sharp, 5, unb, 3, mend, 1, Enchantment.FIRE_ASPECT, 2,
                                 Enchantment.LOOTING, 3, Enchantment.SWEEPING_EDGE, 3),
                         e(Material.MACE, unb, 3, mend, 1, Enchantment.WIND_BURST, 3),
+                        i(Material.WIND_CHARGE, 64),
                         e(Material.NETHERITE_SPEAR, sharp, 5, unb, 3, mend, 1, Enchantment.LUNGE, 3),
                         e(Material.SHIELD, unb, 3, mend, 1),
                         e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.PUNCH, 2),
@@ -336,7 +337,7 @@ final class KitShop implements Listener {
                         potion(Material.SPLASH_POTION, PotionType.STRONG_HEALING, 6),
                         potion(Material.POTION, PotionType.STRONG_STRENGTH, 2)));
         pages.get(4).add(new Kit("Ultimate Survival", ChatColor.LIGHT_PURPLE, Material.PURPLE_SHULKER_BOX, 30000,
-                "The best of everything: elytra, totems, god gear, a Wind Burst mace and netherite spear.")
+                "The best of everything: elytra, totems, god gear, a Wind Burst mace, wind charges and netherite spear.")
                 .add(e(Material.ELYTRA, unb, 3, mend, 1), rocket(64, 3),
                         e(Material.DIAMOND_HELMET, prot, 4, unb, 3, mend, 1, Enchantment.AQUA_AFFINITY, 1, Enchantment.RESPIRATION, 3),
                         e(Material.DIAMOND_CHESTPLATE, prot, 4, unb, 3, mend, 1),
@@ -346,6 +347,7 @@ final class KitShop implements Listener {
                                 Enchantment.LOOTING, 3),
                         e(Material.DIAMOND_PICKAXE, eff, 5, fort, 3, unb, 3, mend, 1),
                         e(Material.MACE, unb, 3, mend, 1, Enchantment.WIND_BURST, 3),
+                        i(Material.WIND_CHARGE, 64),
                         e(Material.NETHERITE_SPEAR, sharp, 5, unb, 3, mend, 1, Enchantment.LUNGE, 3),
                         e(Material.BOW, power, 5, unb, 3, mend, 1, Enchantment.INFINITY, 1),
                         i(Material.ARROW, 1), i(Material.ENCHANTED_GOLDEN_APPLE, 16), i(Material.TOTEM_OF_UNDYING, 4),
@@ -498,7 +500,7 @@ final class KitShop implements Listener {
         if (!(top.getHolder() instanceof KitHolder)) {
             return;
         }
-        event.setCancelled(true);
+        event.setCancelled(MoneyPlugin.blocksMenuClick(event, top));
         if (!(event.getWhoClicked() instanceof Player) || event.getClickedInventory() != top) {
             return;
         }
@@ -556,7 +558,7 @@ final class KitShop implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof KitHolder) {
+        if (event.getView().getTopInventory().getHolder() instanceof KitHolder && MoneyPlugin.dragTouchesMenu(event)) {
             event.setCancelled(true);
         }
     }

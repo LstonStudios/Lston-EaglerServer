@@ -27,7 +27,7 @@ This starts both the game server and the EaglerCraft gateway. Press `Ctrl+C`
 to stop them; the game server will save and shut down cleanly.
 <br>
 To start either server separately instead, use `startserver 1` for the gateway
-or `startserver 2` for the game server.
+`startserver 2` for the game server, or `startserver 4` for the Lston Packs site/pack server (port 8082, also started automatically by plain `startserver`).
 <br>
 Now go to the ports area and forward (and make public) port `8081`
 The port's homepage serves the EaglerCraft 26.2 client (`web/EaglerCraft-26.2.html`);
@@ -151,11 +151,10 @@ live server folders manually.
 ## Plugins
 
 All custom plugins (CustomAbility, CustomGun, CustomItems, CustomTNT,
-CustomWeapons, Money, SpawnMobs, UsernameEffects) are ported to the Paper 26.2
+Money, SpawnMobs, UsernameEffects) are ported to the Paper 26.2
 API and built with `gradle -p <name>-plugin build`; copy the jar from
 `build/libs/` into `server/plugins/`. WorldEdit 7.4.6 and WorldGuard 7.0.19 are
-used instead of the 6.x versions. The custom Mace and Spear (Paper has native
-ones) and Verity are not ported; `/weapon` gives only the Wind Burst.
+used instead of the 6.x versions. Verity is not ported.
 
 ### Basic plugins
 
@@ -197,10 +196,31 @@ restart the server.
 
 ### Custom plugins
 
+Custom item- and money-giving commands accept player names or native Minecraft entity
+selectors: `@a`, `@e`, `@n`, `@p`, `@r`, `@s`, and selector filters such as
+`@e[type=player]` or `@a[distance=..10]`. Only players selected by a selector
+receive items. Tab completion suggests common selectors; full selector filters
+can be entered directly. This applies to `/customtnt`, `/customability`,
+`/customsword`, `/pass`, `/passbutton`, `/cgun`, `/verity <targets>`,
+and `/pay`. The Verity plugin is kept in `server/legacy-plugins/`, so it
+isn't loaded by the current Paper server; on a modern server it uses native
+selectors, while its 1.12 fallback supports the common selector forms. Money
+can be sent between players with `/pay <player|selector> <amount>`. Players
+pay from their balance; admins and the server console grant money. Use
+`/balance [player]` to check a balance and `/bankrupt <player>` to clear one.
+`/shop [1-5]` opens the individual-item shop (including supplies such as
+Ender Pearls, planks, and Firework Rockets), `/cshop [1-5]` opens custom items,
+and `/kit [1-5]` opens kits. Staff can edit a custom shop with `/cshop <n>`.
+`/sell [amount]` sells items from the main hand (one by default). Shop items
+sell for more by rarity: common `$5`, uncommon `$10`, rare `$50`, epic `$100`,
+legendary `$500`, and mythic `$1,000` per item. Item listings and individual
+sales are capped at `$1,000,000`. Run `mreload` in the server console to reload
+the money configuration.
+
 #### Custom TNT
 
 Adds nuke, mining, fire, slime, x-ray, sun, black-hole, rdm, mob, boss, poop, and
-firework TNT. Give variants with `/customtnt <player|@a|@s|@p> <type>
+firework TNT. Give variants with `/customtnt <player|selector> <type>
 [amount]` (`/ctnt` alias); custom variants are not separate items in the
 creative menu. Place most variants normally; right-click a block with mining,
 fire, slime, x-ray, sun, or black-hole TNT to prime it. Items are consumed
@@ -210,10 +230,30 @@ Firework TNT (`firework`, a firework star icon) launches about 30 random
 fireworks in all directions when it explodes; the count is
 `explosions.firework.size` (max 60).
 
+Boss TNT summons the TNT Overlord, a giant-sized (6x scale) 250-health zombie with a TNT-block helmet,
+red TNT-core chestplate, and green zombie body, plus a live boss bar, heavy
+melee knockback, ranged wither-skull attacks, and a close-range ground slam.
+Its melee swings, blast charge, and roaring shockwave each have a visible
+windup, particles, and sound cues. Its boss bar is a winged red/black/gray TNT
+frame with a TNT block in the middle; it comes from the resource pack (restyled
+`white` boss bar sprites plus the `lston:tnt_boss` font glyph, so other bosses are
+unchanged), and the attack state and HP show in the action bar. Players need the
+pack loaded to see the custom frame.
+The custom look is boss-only and does not change ordinary zombie skins. It also
+summons two Wither bosses.
+
 The 1.8-compatible resource pack is `web/custom-tnt-pack.zip`. It retextures
 reused vanilla items, which may also change their normal appearance. For browser
 clients hosted on another origin, run
-`python3 custom-tnt-resource-pack/serve_pack.py` and publicly forward port 8082.
+`python3 custom-tnt-resource-pack/serve_pack.py` and publicly forward port 8082. Opening that port in a browser shows the animated "Lston Packs" site
+(`custom-tnt-resource-pack/site/index.html`, item gallery built from the pack); the pack itself is still
+at `/custom-tnt-pack.zip`, so the in-game download is unchanged.
+Whenever the pack changes, keep the site in sync: the gallery, stats and hash come live from the pack,
+but new item categories or hero icons need `site/index.html` updated (restart `serve_pack.py` if it changed).
+
+On 26.2 every custom item (TNT, swords, guns, abilities, redstone pass/button) has its own
+item model `lston:<id>` set by its plugin with `ItemMeta#setItemModel`, so nothing restyles a vanilla
+item. `custom-tnt-resource-pack/build_items.py` (called by `build_pack.py`) generates them.
 
 Item textures replace that vanilla item's icon for all players. Give custom items their own
 unused material where possible, then register each texture in
@@ -240,6 +280,9 @@ owner with "Farewell" on death. Killing it restores Verity (karma 100, phase 1).
 animals/villagers die and halfway through, nearby creatures vanish and time freezes.
 After rebuilding the pack, update `resource-pack-sha1` and `?v=` in
 `server/server.properties`.
+Placing a custom TNT starts a per-player cooldown that depends on the TNT (mining 0s up to nuke 60s;
+set in `cooldowns:` of the same config). Primed TNT also plays the fuse sizzle with smoke and
+colored effect particles.
 Explosion settings are in `server/plugins/CustomTNT/config.yml`; apply changes
 with `/rldcustomtnt`.
 
@@ -249,7 +292,7 @@ restart the server.
 
 #### Custom Items
 
-Adds custom items. Give them with `/customsword <player|@a|@s|@p> <item|mace|spear|wind|all>
+Adds custom items. Give them with `/customsword <player|selector> <item|all>
 [amount]` (`/cweapon` alias, requires `customitems.admin`, default op).
 
 - `lightning`: Lightning Sword (gold sword, yellow and white). Hitting a living
@@ -269,9 +312,9 @@ Build with `gradle -p custom-items-plugin build`, copy
 restart the server.
 
 Admins and ops can give enchanted paper redstone passes with
-`/pass <player|@a|@p> [amount]` (`@s` is also supported; amount is 1-64).
+`/pass <player|selector> [amount]` (amount is 1-64).
 Admins and ops give special enchanted stone buttons with
-`/passbutton <player|@a|@p> [amount]` (`@s` is also supported; amount is 1-64).
+`/passbutton <player|selector> [amount]` (amount is 1-64).
 Place a special button to make it require a pass; ordinary buttons keep their
 normal behavior. Right-clicking a special button without a pass is blocked and
 shows an error message. Holding a pass and right-clicking consumes one and
@@ -283,5 +326,24 @@ across restarts and cleared when the button is broken.
 
 Build with `gradle -p custom-gun-plugin build`, copy
 `custom-gun-plugin/build/libs/CustomGun-1.0.0.jar` to `server/plugins/`, then restart.
-Admins and ops use `/cgun <player|@a|@s|@p> <gun|all> (27 guns; run /cgun with a bad name to list them) [amount]`
+Admins and ops use `/cgun <player|selector> <gun|all> (27 guns; run /cgun with a bad name to list them) [amount]`
 (alias `/customgun`). All guns are golden hoes with a gun texture from the resource pack. Right-click to shoot; shots are instant, cost no ammo, and have a short cooldown.
+
+#### Orbitalstrike Cannon
+
+`server/plugins/Orbitalstrike-1.7.0.jar` is the third-party
+[Orbitalstrike Cannon](https://modrinth.com/plugin/orbitalstrike-cannon) plugin
+(Modrinth release `ERZ2k6VZ`, SHA-512
+`b1ccb6208c64e933fd08e290d1a6dbb2a95218a66a36bad431da32cf2351f6ea4e8bca9a26aceaae68d1efbc8b65c10a86eaaf0b7812df89d8242a8746a1f3aa`).
+It was selected as the most-downloaded Paper-compatible orbital strike plugin
+found (over 127,000 Modrinth downloads) and explicitly supports Paper 26.2.
+Restart the server to load it. Operators and signed-in admins (after `/login`)
+can use `/orbital` and its
+`chunkeater`, `nuke`, `stab`, `dogs`, `stasis`, `wither`, `totem`, and `give`
+options. Admin permissions are applied by the Money plugin at login; its
+`orbital.use` and `orbital.give` permissions default to operators.
+Admins and ops are protected from damage and targeted kill, clear, and
+teleport commands; incoming teleports are also blocked until they sign in.
+The plugin creates `server/plugins/OrbitalStrike/config.yml` on first start;
+review its settings before use, since the default nuke and stab strikes can
+break blocks.

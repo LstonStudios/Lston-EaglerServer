@@ -1,0 +1,47 @@
+{
+  "stats": {
+    "minecraft:used": {
+      "minecraft:iron_golem_spawn_egg": 1,
+      "minecraft:splash_potion": 2,
+      "minecraft:milk_bucket": 2
+    },
+    "minecraft:picked_up": {
+      "minecraft:poppy": 1,
+      "minecraft:wheat_seeds": 10,
+      "minecraft:wheat": 2,
+      "minecraft:splash_potion": 1,
+      "minecraft:bone": 1,
+      "minecraft:iron_ingot": 5
+    },
+    "minecraft:dropped": {
+      "minecraft:wheat_seeds": 8,
+      "minecraft:wheat": 2,
+      "minecraft:bone": 1
+    },
+    "minecraft:mined": {
+      "minecraft:wheat": 3
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 18346,
+      "minecraft:walk_one_cm": 107544,
+      "minecraft:leave_game": 4,
+      "minecraft:mob_kills": 2,
+      "minecraft:damage_taken": 520,
+      "minecraft:damage_dealt": 803,
+      "minecraft:play_time": 61340,
+      "minecraft:jump": 65,
+      "minecraft:time_since_death": 18343,
+      "minecraft:drop": 11,
+      "minecraft:sprint_one_cm": 4397,
+      "minecraft:total_world_time": 61340,
+      "minecraft:fly_one_cm": 16528,
+      "minecraft:climb_one_cm": 3272,
+      "minecraft:deaths": 4
+    },
+    "minecraft:killed": {
+      "minecraft:iron_golem": 1,
+      "minecraft:wolf": 1
+    }
+  },
+  "DataVersion": 4903
+}

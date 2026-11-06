@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -20,6 +21,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -46,8 +48,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-public final class CustomItemsPlugin extends JavaPlugin implements Listener {
+public final class CustomItemsPlugin extends JavaPlugin implements Listener, TabCompleter {
 
+    private static final org.bukkit.NamespacedKey ITEM_KEY = new org.bukkit.NamespacedKey("customitems", "item");
     private static final String PASS_MARKER = "CustomItems:one-time-redstone-pass";
     private static final String PASS_BUTTON_MARKER = "CustomItems:one-time-redstone-button";
 
@@ -99,8 +102,11 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("customsword").setExecutor(this);
+        getCommand("customsword").setTabCompleter(this);
         getCommand("pass").setExecutor(this);
+        getCommand("pass").setTabCompleter(this);
         getCommand("passbutton").setExecutor(this);
+        getCommand("passbutton").setTabCompleter(this);
         specialButtons.addAll(getConfig().getStringList("special-buttons"));
         for (org.bukkit.entity.Player online : getServer().getOnlinePlayers()) {
             refreshItems(online);
@@ -126,6 +132,15 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             if (old == null) {
                 continue;
             }
+            ItemMeta oldMeta = old.getItemMeta();
+            if (oldMeta != null && (isPass(old) || isPassButton(old))) {
+                boolean pass = isPass(old);
+                oldMeta.setItemModel(new org.bukkit.NamespacedKey("lston", pass ? "redstone_pass" : "pass_button"));
+                oldMeta.getPersistentDataContainer().set(ITEM_KEY, org.bukkit.persistence.PersistentDataType.STRING,
+                        pass ? PASS_MARKER : PASS_BUTTON_MARKER);
+                old.setItemMeta(oldMeta);
+                continue;
+            }
             SwordType type = getSwordType(old);
             if (type != null) {
                 ItemStack fresh = createSword(type);
@@ -144,6 +159,8 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         ItemStack item = new ItemStack(type.material, 1);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(type.displayName());
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston", "sword_" + type.key));
+        meta.getPersistentDataContainer().set(ITEM_KEY, org.bukkit.persistence.PersistentDataType.STRING, type.marker);
         List<String> lore = new ArrayList<String>();
         lore.add(type.first + "" + ChatColor.BOLD + "Ability: " + type.second + type.name);
         StringBuilder cur = new StringBuilder();
@@ -179,6 +196,11 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         return sb.toString();
     }
 
+    private static boolean hasTag(ItemStack item, String marker) {
+        return item != null && item.hasItemMeta()
+                && marker.equals(item.getItemMeta().getPersistentDataContainer().get(ITEM_KEY, org.bukkit.persistence.PersistentDataType.STRING));
+    }
+
     private static boolean containsHidden(List<String> lore, String marker) {
         String hidden = hide(marker);
         for (String line : lore) {
@@ -195,10 +217,10 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         }
         List<String> lore = item.getItemMeta().getLore();
         if (lore == null) {
-            return null;
+            lore = new ArrayList<String>();
         }
         for (SwordType type : SwordType.values()) {
-            if (lore.contains(ChatColor.BLACK + type.marker) || containsHidden(lore, type.marker)) {
+            if (hasTag(item, type.marker) || lore.contains(ChatColor.BLACK + type.marker) || containsHidden(lore, type.marker)) {
                 return type;
             }
         }
@@ -368,14 +390,10 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             sendUsage(sender, label);
             return true;
         }
-        if (args[1].equalsIgnoreCase("mace") || args[1].equalsIgnoreCase("spear")
-                || args[1].equalsIgnoreCase("wind")) {
-            return giveWeapons(sender, args);
-        }
         boolean all = args[1].equalsIgnoreCase("all");
         SwordType type = all ? null : SwordType.fromKey(args[1]);
         if (!all && type == null) {
-            sender.sendMessage(ChatColor.RED + "Unknown item. Choose lightning, explosion, pearl, fall, bad, tp, mace, spear, wind, or all.");
+            sender.sendMessage(ChatColor.RED + "Unknown item. Choose lightning, explosion, pearl, fall, bad, tp, or all.");
             return true;
         }
         List<Player> targets;
@@ -420,26 +438,12 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         String what = all ? "every custom sword" : type.displayName();
         sender.sendMessage(ChatColor.GREEN + "Gave " + amount + " " + what + ChatColor.GREEN + (all || amount == 1 ? "" : "s")
                 + " to " + targets.size() + (targets.size() == 1 ? " player." : " players."));
-        if (all) {
-            giveWeapons(sender, args);
-        }
-        return true;
-    }
-
-    // Mace and Spear live in the CustomWeapons plugin, so hand them over to its /weapon command.
-    private boolean giveWeapons(CommandSender sender, String[] args) {
-        if (getServer().getPluginCommand("weapon") == null) {
-            sender.sendMessage(ChatColor.RED + "The CustomWeapons plugin is not installed.");
-            return true;
-        }
-        String amount = args.length == 3 ? " " + args[2] : "";
-        getServer().dispatchCommand(sender, "weapon " + args[0] + " " + args[1] + amount);
         return true;
     }
 
     private boolean givePasses(CommandSender sender, String label, String[] args) {
         if (args.length < 1 || args.length > 2) {
-            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|@a|@s|@p> [amount]");
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|selector> [amount]");
             return true;
         }
 
@@ -486,7 +490,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
 
     private boolean givePassButtons(CommandSender sender, String label, String[] args) {
         if (args.length < 1 || args.length > 2) {
-            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|@a|@s|@p> [amount]");
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|selector> [amount]");
             return true;
         }
 
@@ -534,6 +538,8 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         ItemStack item = new ItemStack(Material.PAPER, amount);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + "One-Time Redstone Pass");
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston", "redstone_pass"));
+        meta.getPersistentDataContainer().set(ITEM_KEY, org.bukkit.persistence.PersistentDataType.STRING, PASS_MARKER);
         List<String> lore = new ArrayList<String>();
         lore.add(ChatColor.GRAY + "Right-click a stone or wooden button.");
         lore.add(ChatColor.GRAY + "Powers it for 3 seconds, then consumes this pass."
@@ -548,6 +554,8 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         ItemStack item = new ItemStack(Material.STONE_BUTTON, amount);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Pass Button");
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston", "pass_button"));
+        meta.getPersistentDataContainer().set(ITEM_KEY, org.bukkit.persistence.PersistentDataType.STRING, PASS_BUTTON_MARKER);
         List<String> lore = new ArrayList<String>();
         lore.add(ChatColor.GRAY + "Special button: requires a redstone pass.");
         lore.add(ChatColor.GRAY + "Place it, then right-click it with a pass."
@@ -596,10 +604,11 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             return;
         }
 
-        event.setCancelled(true);
+        // Let the vanilla button press run so the signal reaches doors/redstone normally.
+        event.setUseInteractedBlock(org.bukkit.event.Event.Result.ALLOW);
+        event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
         consumeMainHandPass(event.getPlayer());
-        pulseButton(event.getClickedBlock());
-        event.getPlayer().sendMessage(ChatColor.GREEN + "The button is powered for 3 seconds.");
+        event.getPlayer().sendMessage(ChatColor.GREEN + "Pass used - the button is pressed.");
     }
 
     private boolean isPassButton(ItemStack item) {
@@ -607,7 +616,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             return false;
         }
         List<String> lore = item.getItemMeta().getLore();
-        return lore != null && containsHidden(lore, PASS_BUTTON_MARKER);
+        return hasTag(item, PASS_BUTTON_MARKER) || lore != null && containsHidden(lore, PASS_BUTTON_MARKER);
     }
 
     private boolean isPass(ItemStack item) {
@@ -615,7 +624,7 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             return false;
         }
         List<String> lore = item.getItemMeta().getLore();
-        return lore != null && containsHidden(lore, PASS_MARKER);
+        return hasTag(item, PASS_MARKER) || lore != null && containsHidden(lore, PASS_MARKER);
     }
 
     private void consumeMainHandPass(Player player) {
@@ -668,6 +677,24 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
         if (data instanceof Powerable) {
             ((Powerable) data).setPowered(powered);
             block.setBlockData(data, true);
+            if (data instanceof org.bukkit.block.data.type.Switch) {
+                org.bukkit.block.data.type.Switch sw = (org.bukkit.block.data.type.Switch) data;
+                org.bukkit.block.BlockFace attached;
+                switch (sw.getAttachedFace()) {
+                    case FLOOR:
+                        attached = org.bukkit.block.BlockFace.DOWN;
+                        break;
+                    case CEILING:
+                        attached = org.bukkit.block.BlockFace.UP;
+                        break;
+                    default:
+                        attached = sw.getFacing().getOppositeFace();
+                        break;
+                }
+                // Re-apply the supporting block so redstone/doors next to it see the new power.
+                Block support = block.getRelative(attached);
+                support.setBlockData(support.getBlockData(), true);
+            }
         }
     }
 
@@ -679,38 +706,36 @@ public final class CustomItemsPlugin extends JavaPlugin implements Listener {
             }
             return Collections.singletonList(target);
         }
-        if (targetName.equalsIgnoreCase("@a")) {
-            return new ArrayList<>(getServer().getOnlinePlayers());
-        }
-        if (targetName.equalsIgnoreCase("@s")) {
-            if (sender instanceof Player) {
-                return Collections.singletonList((Player) sender);
-            }
-            throw new IllegalArgumentException("@s can only be used by a player.");
-        }
-        if (targetName.equalsIgnoreCase("@p")) {
-            if (!(sender instanceof Player)) {
-                throw new IllegalArgumentException("@p can only be used by a player.");
-            }
-            Player nearest = null;
-            double nearestDistance = Double.MAX_VALUE;
-            Location origin = ((Player) sender).getLocation();
-            for (Player player : getServer().getOnlinePlayers()) {
-                if (!player.getWorld().equals(origin.getWorld())) {
-                    continue;
-                }
-                double distance = player.getLocation().distanceSquared(origin);
-                if (distance < nearestDistance) {
-                    nearest = player;
-                    nearestDistance = distance;
+        List<Player> players = new ArrayList<>();
+        try {
+            for (Entity entity : org.bukkit.Bukkit.selectEntities(sender, targetName)) {
+                if (entity instanceof Player) {
+                    players.add((Player) entity);
                 }
             }
-            return nearest == null ? Collections.<Player>emptyList() : Collections.singletonList(nearest);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid target selector: " + exception.getMessage(), exception);
         }
-        throw new IllegalArgumentException("Supported player selectors are @a, @s, and @p.");
+        return players;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>();
+        if (args.length == 1) {
+            suggestions.addAll(Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s", "@e[type=player]"));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                suggestions.add(player.getName());
+            }
+        } else if (args.length == 2 && command.getName().equalsIgnoreCase("customsword")) {
+            suggestions.addAll(Arrays.asList("lightning", "explosion", "pearl", "fall", "bad", "tp", "all"));
+        }
+        String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
+        suggestions.removeIf(suggestion -> !suggestion.toLowerCase(java.util.Locale.ROOT).startsWith(prefix));
+        return suggestions;
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|@a|@s|@p> <lightning|explosion|pearl|fall|bad|tp|mace|spear|wind|all> [amount]");
+        sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " <player|selector> <lightning|explosion|pearl|fall|bad|tp|all> [amount]");
     }
 }

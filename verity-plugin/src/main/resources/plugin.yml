@@ -9,8 +9,8 @@ commands:
     usage: |
       /verity                       - give yourself a Verity Box
       /verity kill                  - kill your Verity
-      /verity phase <player> <1-4>  - set a player's Verity phase (admins)
-      /verity <targets> [amount]    - give Verity Boxes to others (admins; @a, @s, @p, @r or names)
+      /verity phase <player|selector> <1-4> - set selected players' Verity phase (admins)
+      /verity <targets> [amount]    - give Verity Boxes to others (admins; selectors or names)
       /verity killall               - kill every Verity (admins)
   verityhelp:
     description: List the Verity commands.

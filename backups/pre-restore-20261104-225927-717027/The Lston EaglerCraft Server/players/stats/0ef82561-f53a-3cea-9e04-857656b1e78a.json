@@ -1,0 +1,57 @@
+{
+  "stats": {
+    "minecraft:picked_up": {
+      "minecraft:coal": 7,
+      "minecraft:cobblestone": 3,
+      "minecraft:feather": 3,
+      "minecraft:purple_shulker_box": 3,
+      "minecraft:wheat_seeds": 3,
+      "minecraft:wheat": 1,
+      "minecraft:cooked_porkchop": 12,
+      "minecraft:paper": 4,
+      "minecraft:cooked_chicken": 3
+    },
+    "minecraft:killed": {
+      "minecraft:chicken": 1,
+      "minecraft:pig": 3
+    },
+    "minecraft:custom": {
+      "minecraft:interact_with_crafting_table": 1,
+      "minecraft:time_since_rest": 29244,
+      "minecraft:walk_one_cm": 118541,
+      "minecraft:leave_game": 5,
+      "minecraft:mob_kills": 4,
+      "minecraft:damage_taken": 8,
+      "minecraft:damage_dealt": 370,
+      "minecraft:play_time": 29244,
+      "minecraft:open_shulker_box": 4,
+      "minecraft:jump": 158,
+      "minecraft:time_since_death": 29244,
+      "minecraft:sprint_one_cm": 2271,
+      "minecraft:open_chest": 7,
+      "minecraft:interact_with_smithing_table": 1,
+      "minecraft:fall_one_cm": 1300,
+      "minecraft:total_world_time": 29244,
+      "minecraft:fly_one_cm": 540,
+      "minecraft:interact_with_anvil": 2,
+      "minecraft:walk_on_water_one_cm": 105,
+      "minecraft:crouch_one_cm": 131,
+      "minecraft:sneak_time": 105,
+      "minecraft:climb_one_cm": 702,
+      "minecraft:interact_with_loom": 1
+    },
+    "minecraft:mined": {
+      "minecraft:coal_ore": 3,
+      "minecraft:purple_shulker_box": 2,
+      "minecraft:stone": 3
+    },
+    "minecraft:used": {
+      "minecraft:elytra": 1,
+      "minecraft:diamond_pickaxe": 7,
+      "minecraft:diamond_sword": 4,
+      "minecraft:purple_shulker_box": 2,
+      "minecraft:diamond_chestplate": 1
+    }
+  },
+  "DataVersion": 4903
+}

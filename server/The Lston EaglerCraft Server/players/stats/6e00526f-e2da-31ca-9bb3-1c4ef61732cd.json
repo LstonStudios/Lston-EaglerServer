@@ -1,0 +1,83 @@
+{
+  "stats": {
+    "minecraft:mined": {
+      "minecraft:fire": 3,
+      "minecraft:iron_block": 10,
+      "minecraft:netherrack": 3,
+      "minecraft:purple_shulker_box": 3,
+      "minecraft:lime_shulker_box": 1
+    },
+    "minecraft:dropped": {
+      "minecraft:rotten_flesh": 7,
+      "minecraft:cooked_beef": 7,
+      "minecraft:white_shulker_box": 1,
+      "minecraft:purple_shulker_box": 3
+    },
+    "minecraft:used": {
+      "minecraft:red_shulker_box": 1,
+      "minecraft:cooked_beef": 5,
+      "minecraft:diamond_pickaxe": 17,
+      "minecraft:netherite_sword": 9,
+      "minecraft:lime_shulker_box": 1,
+      "minecraft:diamond_sword": 49,
+      "minecraft:netherite_spear": 5,
+      "minecraft:purple_shulker_box": 1
+    },
+    "minecraft:killed": {
+      "minecraft:zombified_piglin": 6,
+      "minecraft:piglin": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 3
+    },
+    "minecraft:picked_up": {
+      "minecraft:netherrack": 3,
+      "minecraft:diorite": 4,
+      "minecraft:salmon": 2,
+      "minecraft:dirt": 48,
+      "minecraft:iron_block": 10,
+      "minecraft:white_wool": 1,
+      "minecraft:lime_shulker_box": 1,
+      "minecraft:azure_bluet": 1,
+      "minecraft:gold_nugget": 15,
+      "minecraft:rotten_flesh": 7,
+      "minecraft:coal": 18,
+      "minecraft:golden_sword": 2,
+      "minecraft:obsidian": 12,
+      "minecraft:wheat_seeds": 5,
+      "minecraft:shield": 1,
+      "minecraft:purple_shulker_box": 9,
+      "minecraft:granite": 2,
+      "minecraft:mutton": 2,
+      "minecraft:lapis_lazuli": 16,
+      "minecraft:netherite_sword": 1
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 26775,
+      "minecraft:walk_one_cm": 106309,
+      "minecraft:leave_game": 1,
+      "minecraft:walk_under_water_one_cm": 23,
+      "minecraft:mob_kills": 7,
+      "minecraft:damage_taken": 1437,
+      "minecraft:play_time": 33378,
+      "minecraft:damage_dealt": 2340,
+      "minecraft:open_shulker_box": 5,
+      "minecraft:jump": 159,
+      "minecraft:time_since_death": 26771,
+      "minecraft:damage_dealt_absorbed": 2,
+      "minecraft:drop": 12,
+      "minecraft:sprint_one_cm": 55915,
+      "minecraft:open_chest": 6,
+      "minecraft:fall_one_cm": 1860,
+      "minecraft:total_world_time": 33378,
+      "minecraft:fly_one_cm": 8118,
+      "minecraft:interact_with_anvil": 1,
+      "minecraft:walk_on_water_one_cm": 454,
+      "minecraft:crouch_one_cm": 2,
+      "minecraft:sneak_time": 266,
+      "minecraft:deaths": 3,
+      "minecraft:player_kills": 2
+    }
+  },
+  "DataVersion": 4903
+}

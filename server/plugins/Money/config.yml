@@ -707,7 +707,114 @@ shops:
         glow: true
   '3':
     title: Shop 3
+    slots:
+      '0':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '1':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '2':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '3':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '4':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: '&6&lSupplies'
+      '5':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '6':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '7':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '8':
+        material: RED_STAINED_GLASS_PANE
+        amount: 1
+        price: -1
+        name: ' '
+      '9':
+        material: COBBLESTONE
+        amount: 64
+        price: 64
+        name: '&764 Cobblestone'
+      '10':
+        material: TORCH
+        amount: 64
+        price: 64
+        name: '&e64 Torches'
+      '11':
+        material: GLASS
+        amount: 32
+        price: 96
+        name: '&f32 Glass'
+      '12':
+        material: OAK_PLANKS
+        amount: 64
+        price: 128
+        name: '&664 Oak Planks'
+      '13':
+        material: ENDER_PEARL
+        amount: 8
+        price: 200
+        name: '&d8 Ender Pearls'
+      '14':
+        material: IRON_INGOT
+        amount: 16
+        price: 240
+        name: '&f16 Iron Ingots'
+      '15':
+        material: OBSIDIAN
+        amount: 16
+        price: 400
+        name: '&516 Obsidian'
+      '16':
+        material: GOLDEN_APPLE
+        amount: 1
+        price: 500
+        name: '&eGolden Apple'
+      '17':
+        material: DIAMOND
+        amount: 1
+        price: 1000
+        name: '&bDiamond'
+      '18':
+        material: TOTEM_OF_UNDYING
+        amount: 1
+        price: 2500
+        name: '&eTotem of Undying'
+      '19':
+        material: BREEZE_ROD
+        amount: 64
+        price: 10000
+      '20':
+        material: FIREWORK_ROCKET
+        amount: 16
+        price: 160
+        name: '&c16 Firework Rockets'
   '4':
     title: Shop 4
   '5':
     title: Shop 5
+item-shop:
+  defaults-created: true

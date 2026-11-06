@@ -51,3 +51,19 @@ explosions:
     power: 0.0
     size: 32
     fire: false
+
+# Seconds a player must wait after placing a TNT, by the TNT placed (stronger TNT = longer wait).
+cooldowns:
+  mining: 0
+  slime: 4
+  poop: 4
+  firework: 5
+  x-ray: 5
+  rdm: 6
+  mob: 8
+  fire: 8
+  sun: 10
+  anti-tnt: 3
+  black-hole: 20
+  boss: 30
+  nuke: 60

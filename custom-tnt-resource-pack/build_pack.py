@@ -3,9 +3,13 @@
 
 from pathlib import Path
 import colorsys
+import json
 import struct
 import zlib
 import zipfile
+
+import build_bossbar
+import build_items
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / "assets" / "minecraft" / "textures"
@@ -239,7 +243,7 @@ THEMES = {
     "sun": ((255, 196, 20), (255, 250, 200), (130, 80, 10), (255, 255, 255)),
     "egg": ((235, 235, 235), (255, 255, 255), (150, 150, 150), (255, 255, 255)),
     "black_hole": ((56, 36, 84), (210, 200, 230), (12, 8, 20), (190, 120, 255)),
-    "anti": ((70, 200, 230), (245, 255, 255), (10, 60, 90), (255, 255, 255)),
+    "anti": ((165, 222, 255), (248, 253, 255), (60, 110, 160), (255, 255, 255)),
 }
 
 ITEM_THEME = {
@@ -351,6 +355,33 @@ SWORD_THEMES = {
 }
 
 
+TNT_ITEM_IDS = [
+    "nuke", "mining", "fire", "slime", "xray", "rdm", "boss", "mob", "poop",
+    "firework", "sun", "black_hole", "anti",
+]
+def build_tnt_item_models():
+    """Give every custom TNT its own 26.x item model (namespace lston) so none shares a vanilla item's look."""
+    ns = ROOT / "assets" / "lston"
+    for item_id in TNT_ITEM_IDS:
+        name = f"{item_id}_tnt"
+        texture = ns / "textures" / "item" / f"{name}.png"
+        legacy = ASSETS / "items" / f"{name}.png"
+        texture.parent.mkdir(parents=True, exist_ok=True)
+        if item_id in ("nuke", "anti"):
+            body, band, ink, spark = THEMES[item_id]
+            png_rgba(texture, cube_icon(body, band, ink, spark, len(ITEM_THEME) + 1))
+        else:
+            texture.write_bytes(legacy.read_bytes())
+        model = ns / "models" / "item" / f"{name}.json"
+        model.parent.mkdir(parents=True, exist_ok=True)
+        model.write_text(json.dumps({"parent": "minecraft:item/generated",
+                                     "textures": {"layer0": f"lston:item/{name}"}}, indent=2) + "\n")
+        definition = ns / "items" / f"{name}.json"
+        definition.parent.mkdir(parents=True, exist_ok=True)
+        definition.write_text(json.dumps({"model": {"type": "minecraft:model",
+                                                    "model": f"lston:item/{name}"}}, indent=2) + "\n")
+
+
 def build():
     tnt_themes = {
         "items/mining_tnt.png": ((169, 169, 169, 255), (89, 89, 89, 255), (230, 230, 230, 255), (89, 89, 89, 255)),
@@ -369,6 +400,9 @@ def build():
         png(ASSETS / "items" / name, rows, palette)
 
     build_detailed()
+    build_tnt_item_models()
+    build_items.build()
+    build_bossbar.build()
 
     with zipfile.ZipFile(WEB_PACK, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path, name in [
@@ -376,13 +410,30 @@ def build():
             *[
                 (path, path.relative_to(ROOT).as_posix())
                 for path in sorted((ROOT / "assets").rglob("*"))
-                if path.suffix in {".json", ".png"}
+                if path.suffix in {".json", ".png", ".bin"}
             ],
         ]:
             info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     print(f"Created {WEB_PACK} ({WEB_PACK.stat().st_size} bytes)")
+    sync_server_properties()
+
+
+def sync_server_properties():
+    """Keep resource-pack URL version and sha1 in server.properties in step with the built zip."""
+    import hashlib
+    import re
+
+    props = WEB_PACK.parent.parent / "server" / "server.properties"
+    if not props.exists():
+        return
+    digest = hashlib.sha1(WEB_PACK.read_bytes()).hexdigest()
+    text = props.read_text()
+    text = re.sub(r"(?m)^resource-pack-sha1=.*$", f"resource-pack-sha1={digest}", text)
+    text = re.sub(r"(?m)^(resource-pack=.*?\.zip)\\?\?v\\=[0-9a-f]+$", rf"\1?v\\={digest}", text)
+    props.write_text(text)
+    print(f"server.properties pack sha1 -> {digest}")
 
 
 if __name__ == "__main__":

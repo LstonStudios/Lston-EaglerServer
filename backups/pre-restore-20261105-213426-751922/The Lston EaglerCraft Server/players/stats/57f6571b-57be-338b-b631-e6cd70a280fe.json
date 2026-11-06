@@ -1,0 +1,45 @@
+{
+  "stats": {
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 6028,
+      "minecraft:walk_one_cm": 63627,
+      "minecraft:leave_game": 1,
+      "minecraft:damage_taken": 627,
+      "minecraft:damage_dealt": 0,
+      "minecraft:play_time": 11462,
+      "minecraft:open_shulker_box": 2,
+      "minecraft:jump": 80,
+      "minecraft:time_since_death": 6025,
+      "minecraft:damage_dealt_absorbed": 24,
+      "minecraft:sprint_one_cm": 195,
+      "minecraft:open_chest": 3,
+      "minecraft:fall_one_cm": 2587,
+      "minecraft:total_world_time": 11462,
+      "minecraft:fly_one_cm": 774,
+      "minecraft:deaths": 2
+    },
+    "minecraft:picked_up": {
+      "minecraft:diorite": 10,
+      "minecraft:spruce_sign": 1,
+      "minecraft:dirt": 1,
+      "minecraft:smithing_table": 1,
+      "minecraft:cut_copper_stairs": 4,
+      "minecraft:pale_oak_fence": 1,
+      "minecraft:copper_block": 4,
+      "minecraft:crafting_table": 1,
+      "minecraft:loom": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 2
+    },
+    "minecraft:mined": {
+      "minecraft:loom": 1,
+      "minecraft:smithing_table": 1,
+      "minecraft:spruce_sign": 1,
+      "minecraft:crafting_table": 1,
+      "minecraft:wheat": 1,
+      "minecraft:pale_oak_fence": 2
+    }
+  },
+  "DataVersion": 4903
+}

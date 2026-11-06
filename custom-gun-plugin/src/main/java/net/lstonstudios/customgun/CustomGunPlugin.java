@@ -1,6 +1,7 @@
 package net.lstonstudios.customgun;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +19,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -32,7 +34,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-public final class CustomGunPlugin extends JavaPlugin implements Listener {
+public final class CustomGunPlugin extends JavaPlugin implements Listener, TabCompleter {
 
     private enum Gun {
         PISTOL("pistol", Material.GOLDEN_HOE, ChatColor.GRAY, "Pistol", "Reliable and accurate.", 6.0, 1, 0.0, 50, 60, 0),
@@ -122,6 +124,7 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
         }
     }
 
+    private static final org.bukkit.NamespacedKey GUN_KEY = new org.bukkit.NamespacedKey("customgun", "gun");
     private static final String MARKER_PREFIX = ChatColor.BLACK + "CustomGun:";
     private final Map<String, Long> cooldowns = new HashMap<>();
 
@@ -129,12 +132,15 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("cgun").setExecutor(this);
+        getCommand("cgun").setTabCompleter(this);
     }
 
     private ItemStack createGun(Gun gun) {
         ItemStack stack = new ItemStack(gun.material);
         ItemMeta meta = stack.getItemMeta();
         meta.setDisplayName(gun.color + "" + ChatColor.BOLD + "\u2726 " + gun.name + " \u2726");
+        meta.getPersistentDataContainer().set(GUN_KEY, org.bukkit.persistence.PersistentDataType.STRING, gun.key);
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston", "gun_" + gun.key));
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + gun.description);
         lore.add("");
@@ -169,8 +175,28 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
         return value == Math.floor(value) ? String.valueOf((int) value) : String.valueOf(value);
     }
 
+    @EventHandler
+    public void onJoinRefresh(org.bukkit.event.player.PlayerJoinEvent event) {
+        for (ItemStack stack : event.getPlayer().getInventory().getContents()) {
+            Gun gun = gunOf(stack);
+            if (gun != null) {
+                ItemMeta meta = stack.getItemMeta();
+                meta.setItemModel(new org.bukkit.NamespacedKey("lston", "gun_" + gun.key));
+                meta.getPersistentDataContainer().set(GUN_KEY, org.bukkit.persistence.PersistentDataType.STRING, gun.key);
+                stack.setItemMeta(meta);
+            }
+        }
+    }
+
     private Gun gunOf(ItemStack stack) {
-        if (stack == null || !stack.hasItemMeta() || !stack.getItemMeta().hasLore()) {
+        if (stack == null || !stack.hasItemMeta()) {
+            return null;
+        }
+        String stored = stack.getItemMeta().getPersistentDataContainer().get(GUN_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+        if (stored != null) {
+            return Gun.fromKey(stored);
+        }
+        if (!stack.getItemMeta().hasLore()) {
             return null;
         }
         List<String> lore = stack.getItemMeta().getLore();
@@ -432,15 +458,17 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
             return false;
         }
         List<Player> targets = new ArrayList<>();
-        String selector = args[0].toLowerCase(Locale.ROOT);
-        if (selector.equals("@a")) {
-            targets.addAll(Bukkit.getOnlinePlayers());
-        } else if (selector.equals("@s") || selector.equals("@p")) {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "Specify a player name.");
+        if (args[0].startsWith("@")) {
+            try {
+                for (Entity entity : Bukkit.selectEntities(sender, args[0])) {
+                    if (entity instanceof Player) {
+                        targets.add((Player) entity);
+                    }
+                }
+            } catch (IllegalArgumentException exception) {
+                sender.sendMessage(ChatColor.RED + "Invalid target selector: " + exception.getMessage());
                 return true;
             }
-            targets.add((Player) sender);
         } else {
             Player player = Bukkit.getPlayerExact(args[0]);
             if (player == null) {
@@ -448,6 +476,10 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
                 return true;
             }
             targets.add(player);
+        }
+        if (targets.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "No online players matched " + args[0] + ".");
+            return true;
         }
         List<Gun> guns = new ArrayList<>();
         if (args[1].equalsIgnoreCase("all")) {
@@ -482,5 +514,24 @@ public final class CustomGunPlugin extends JavaPlugin implements Listener {
         sender.sendMessage(ChatColor.GREEN + "Gave " + (guns.size() > 1 ? "all guns" : guns.get(0).name) + " x" + amount
                 + " to " + targets.size() + " player(s).");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>();
+        if (args.length == 1) {
+            suggestions.addAll(Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s", "@e[type=player]"));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                suggestions.add(player.getName());
+            }
+        } else if (args.length == 2) {
+            for (Gun gun : Gun.values()) {
+                suggestions.add(gun.key);
+            }
+            suggestions.add("all");
+        }
+        String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(Locale.ROOT);
+        suggestions.removeIf(suggestion -> !suggestion.toLowerCase(Locale.ROOT).startsWith(prefix));
+        return suggestions;
     }
 }

@@ -305,6 +305,7 @@ shops:
           - {material: GLASS, amount: 32, name: "&f32 Glass", price: 96}
           - {material: OAK_PLANKS, amount: 64, name: "&664 Oak Planks", price: 128}
           - {material: ENDER_PEARL, amount: 8, name: "&d8 Ender Pearls", price: 200}
+          - {material: FIREWORK_ROCKET, amount: 16, name: "&c16 Firework Rockets", price: 160}
           - {material: IRON_INGOT, amount: 16, name: "&f16 Iron Ingots", price: 240}
           - {material: OBSIDIAN, amount: 16, name: "&516 Obsidian", price: 400}
           - {material: GOLDEN_APPLE, name: "&eGolden Apple", price: 500}

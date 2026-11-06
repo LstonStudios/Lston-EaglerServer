@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "lston:font/tnt_boss_frame.png",
+      "ascent": 8,
+      "height": 24,
+      "chars": ["\uE000"]
+    }
+  ]
+}

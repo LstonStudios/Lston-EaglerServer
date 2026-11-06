@@ -1,6 +1,14 @@
 {
   "pack": {
-    "pack_format": 1,
-    "description": "Custom TNT textures for The Lston EaglerCraft Server"
+    "pack_format": 3,
+    "min_format": [
+      88,
+      0
+    ],
+    "max_format": [
+      88,
+      0
+    ],
+    "description": "Custom items for The Lston EaglerCraft Server"
   }
 }

@@ -69,7 +69,7 @@
 	# contents of the listener's MOTD, which is the text displayed along with the
 	# server_icon when players add this server's listener address to their client's
 	# Multiplayer menu server list.
-	server_motd = ["&9Welcome to The &a&lLstonServer!", "&aEaglerCraft &926.2"]
+	server_motd = ["&9Welcome to The &a&lLstonServer!", "&6ꜱᴜʀᴠɪᴠᴀʟ &a⬩ &6ᴘᴠᴘ &a⬩ &6ᴛᴇᴀᴍ ʙᴀᴛᴛʟᴇꜱ"]
 	# Default value is true, is this listener should respond to MOTD queries or not
 	allow_motd = true
 	# Default value is true, is this listener should respond to other query types or

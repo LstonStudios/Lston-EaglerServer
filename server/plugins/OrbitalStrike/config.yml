@@ -1,0 +1,66 @@
+permission: orbital.use
+
+disabled-worlds:
+- ''
+
+strikes:
+  nuke:
+    enabled: true
+  stab:
+    enabled: true
+  dogs:
+    enabled: true
+  chunkeater:
+    enabled: true
+  stasis:
+    enabled: true
+  wither:
+    enabled: true
+  totem:
+    enabled: true
+
+cooldowns:
+  enabled: false
+  nuke: 300
+  stab: 120
+  dogs: 180
+  chunkeater: 600
+  stasis: 240
+  wither: 240
+  totem: 240
+
+rod:
+  distance: 100
+  throw-rod: true
+
+nuke:
+  rings: 10
+  height: 15
+  yield: 6.0
+  tnt-per-ring-base: 40
+  tnt-per-ring-increase: 2
+  fuse-ticks: 160
+  center-tnt: true
+  Animated-rings: true
+  damaged-rings: true
+  break-blocks: true
+
+stab:
+  yield: 4.0
+  break-blocks: true
+
+dogs:
+  count: 50
+  radius: 5.0
+  effect-duration: 2400
+  effects:
+  - SPEED:1
+  - STRENGTH:2
+
+wither:
+  charged: true
+  range: 20
+  width: 20
+  speed: 3
+  skulls: 15
+  duration-ticks: 600

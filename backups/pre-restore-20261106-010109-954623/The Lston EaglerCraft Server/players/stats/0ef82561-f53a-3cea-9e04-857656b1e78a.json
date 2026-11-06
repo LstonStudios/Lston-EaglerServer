@@ -1,0 +1,99 @@
+{
+  "stats": {
+    "minecraft:picked_up": {
+      "minecraft:white_shulker_box": 1,
+      "minecraft:dirt": 20,
+      "minecraft:cobblestone": 3,
+      "minecraft:totem_of_undying": 1,
+      "minecraft:saddle": 1,
+      "minecraft:feather": 3,
+      "minecraft:cooked_porkchop": 20,
+      "minecraft:cooked_chicken": 3,
+      "minecraft:enchanted_golden_apple": 60,
+      "minecraft:coal": 7,
+      "minecraft:obsidian": 8,
+      "minecraft:wheat_seeds": 8,
+      "minecraft:purple_shulker_box": 10,
+      "minecraft:wheat": 1,
+      "minecraft:chest": 3,
+      "minecraft:blue_shulker_box": 2,
+      "minecraft:paper": 4
+    },
+    "minecraft:crafted": {
+      "minecraft:diamond": 144,
+      "minecraft:wind_charge": 256,
+      "minecraft:gold_ingot": 36,
+      "minecraft:emerald": 36
+    },
+    "minecraft:mined": {
+      "minecraft:short_grass": 1,
+      "minecraft:chest": 2,
+      "minecraft:ender_chest": 1,
+      "minecraft:coal_ore": 3,
+      "minecraft:wheat": 2,
+      "minecraft:purple_shulker_box": 7,
+      "minecraft:white_shulker_box": 1,
+      "minecraft:stone": 3
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 1341,
+      "minecraft:leave_game": 9,
+      "minecraft:mob_kills": 5,
+      "minecraft:damage_taken": 761,
+      "minecraft:open_shulker_box": 16,
+      "minecraft:damage_absorbed": 188,
+      "minecraft:time_since_death": 1336,
+      "minecraft:damage_dealt_absorbed": 41,
+      "minecraft:open_enderchest": 3,
+      "minecraft:interact_with_smithing_table": 1,
+      "minecraft:total_world_time": 64247,
+      "minecraft:crouch_one_cm": 255,
+      "minecraft:climb_one_cm": 702,
+      "minecraft:deaths": 2,
+      "minecraft:interact_with_loom": 1,
+      "minecraft:damage_resisted": 192,
+      "minecraft:interact_with_crafting_table": 1,
+      "minecraft:walk_one_cm": 263515,
+      "minecraft:walk_under_water_one_cm": 600,
+      "minecraft:play_time": 64247,
+      "minecraft:damage_dealt": 568,
+      "minecraft:jump": 364,
+      "minecraft:drop": 3,
+      "minecraft:sprint_one_cm": 6117,
+      "minecraft:open_chest": 14,
+      "minecraft:fall_one_cm": 3131,
+      "minecraft:fly_one_cm": 3576,
+      "minecraft:interact_with_anvil": 2,
+      "minecraft:walk_on_water_one_cm": 14946,
+      "minecraft:sneak_time": 298
+    },
+    "minecraft:dropped": {
+      "minecraft:wheat_seeds": 1,
+      "minecraft:saddle": 1,
+      "minecraft:blue_shulker_box": 1
+    },
+    "minecraft:killed_by": {
+      "minecraft:player": 2
+    },
+    "minecraft:used": {
+      "minecraft:wind_charge": 5,
+      "minecraft:netherite_sword": 12,
+      "minecraft:diamond_sword": 5,
+      "minecraft:blue_shulker_box": 1,
+      "minecraft:mace": 3,
+      "minecraft:diamond_chestplate": 1,
+      "minecraft:elytra": 2,
+      "minecraft:diamond_pickaxe": 8,
+      "minecraft:chest": 2,
+      "minecraft:netherite_chestplate": 1,
+      "minecraft:enchanted_golden_apple": 2,
+      "minecraft:purple_shulker_box": 7,
+      "minecraft:bow": 1
+    },
+    "minecraft:killed": {
+      "minecraft:chicken": 1,
+      "minecraft:pig": 4
+    }
+  },
+  "DataVersion": 4903
+}

@@ -7,7 +7,7 @@ description: Right-click ability items for combat, defense and movement.
 commands:
   customability:
     description: Give ability items to players.
-    usage: /customability <player|@a|@s|@p> <ability|all> [amount]
+    usage: /customability <player|selector> <ability|all> [amount]
     aliases: [cability]
     permission: customability.admin
 permissions:

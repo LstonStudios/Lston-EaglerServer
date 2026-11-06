@@ -8,7 +8,7 @@ depend: [WorldGuard]
 commands:
   customtnt:
     description: Give custom TNT to players.
-    usage: /customtnt <player|@a|@s|@p> <type|all> [amount]
+    usage: /customtnt <player|selector> <type|all> [amount]
     aliases: [ctnt]
     permission: customtnt.admin
   rldcustomtnt:

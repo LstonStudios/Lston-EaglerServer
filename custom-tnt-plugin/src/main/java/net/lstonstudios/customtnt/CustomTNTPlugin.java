@@ -1,6 +1,7 @@
 package net.lstonstudios.customtnt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -28,6 +29,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -61,9 +63,11 @@ import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
 
-public final class CustomTNTPlugin extends JavaPlugin implements Listener {
+public final class CustomTNTPlugin extends JavaPlugin implements Listener, TabExecutor {
 
     private static final String TNT_METADATA_KEY = "net.lstonstudios.customtnt.type";
+    private final Map<UUID, Long> cooldownEnds = new HashMap<>();
+    private static final org.bukkit.NamespacedKey ITEM_TYPE_KEY = new org.bukkit.NamespacedKey("customtnt", "type");
     private static final String ITEM_MARKER_PREFIX = ChatColor.BLACK + "CustomTNT:";
     private static final String HIDDEN_MARKER_PREFIX = "CustomTNT:";
     private final Map<TNTType, ExplosionSettings> explosionSettings = new HashMap<>();
@@ -83,6 +87,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         loadExplosionSettings();
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("customtnt").setExecutor(this);
+        getCommand("customtnt").setTabCompleter(this);
         getCommand("rldcustomtnt").setExecutor(this);
         loadJournal();
         new BukkitRunnable() {
@@ -99,6 +104,11 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         saveJournal();
+        for (BossHud hud : bossBars.values()) {
+            hud.clear();
+        }
+        bossBars.clear();
+        bossAnimations.clear();
     }
 
     private void loadExplosionSettings() {
@@ -181,6 +191,26 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private boolean primeCustomTNT(Location location, TNTType type, Player player) {
+        long now = System.currentTimeMillis();
+        Long readyAt = cooldownEnds.get(player.getUniqueId());
+        if (readyAt != null && readyAt > now) {
+            player.sendActionBar(net.kyori.adventure.text.Component.text(
+                    "TNT cooling down: " + String.format("%.1f", (readyAt - now) / 1000.0) + "s",
+                    net.kyori.adventure.text.format.NamedTextColor.RED));
+            return false;
+        }
+        boolean primed = primeNow(location, type, player);
+        if (primed) {
+            int ticks = getConfig().getInt("cooldowns." + type.key, type.defaultCooldownSeconds) * 20;
+            if (ticks > 0) {
+                cooldownEnds.put(player.getUniqueId(), now + ticks * 50L);
+                player.setCooldown(type.icon, ticks);
+            }
+        }
+        return primed;
+    }
+
+    private boolean primeNow(Location location, TNTType type, Player player) {
         if (type == TNTType.MINING) {
             startMiningTunnel(location, player);
             return true;
@@ -192,7 +222,9 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         }
 
         TNTPrimed tnt = (TNTPrimed) spawned;
+        tnt.setFuseTicks(80);
         tnt.setMetadata(TNT_METADATA_KEY, new FixedMetadataValue(this, type.key));
+        location.getWorld().playSound(location, Sound.ENTITY_TNT_PRIMED, 1.0F, 1.0F);
         startFuseEffects(tnt, type);
         if (type == TNTType.NUKE) {
             announceNuke(tnt);
@@ -687,27 +719,72 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                     break;
                 }
             }
-            boolean giant = i == 0;
+            boolean customBoss = i == 0;
             org.bukkit.entity.LivingEntity boss = (org.bukkit.entity.LivingEntity) world.spawnEntity(
-                    spot, giant ? EntityType.GIANT : EntityType.WITHER);
-            boss.setCustomName(ChatColor.DARK_RED + (giant ? "Giant Zombie Boss" : "Wither Boss"));
+                    spot, customBoss ? EntityType.ZOMBIE : EntityType.WITHER);
+            boss.setCustomName(ChatColor.DARK_RED + (customBoss ? "TNT Overlord" : "Wither Boss"));
             boss.setCustomNameVisible(true);
             boss.setRemoveWhenFarAway(false);
-            addBossEffect(boss, org.bukkit.potion.PotionEffectType.HEALTH_BOOST, 4);
             addBossEffect(boss, org.bukkit.potion.PotionEffectType.FIRE_RESISTANCE, 0);
             addBossEffect(boss, org.bukkit.potion.PotionEffectType.REGENERATION, 1);
-            if (giant) {
+            if (customBoss) {
+                org.bukkit.attribute.AttributeInstance maxHealth =
+                        boss.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                if (maxHealth != null) {
+                    maxHealth.setBaseValue(250.0);
+                }
+                org.bukkit.attribute.AttributeInstance scale =
+                        boss.getAttribute(org.bukkit.attribute.Attribute.SCALE);
+                if (scale != null) {
+                    scale.setBaseValue(BOSS_SCALE);
+                }
                 addBossEffect(boss, org.bukkit.potion.PotionEffectType.STRENGTH, 1);
                 addBossEffect(boss, org.bukkit.potion.PotionEffectType.RESISTANCE, 1);
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.SPEED, 1);
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.JUMP_BOOST, 1);
-                addBossEffect(boss, org.bukkit.potion.PotionEffectType.NIGHT_VISION, 0);
+                addBossEffect(boss, org.bukkit.potion.PotionEffectType.SPEED, 0);
+                boss.setCustomName(ChatColor.DARK_RED + "TNT Overlord");
+                if (boss instanceof org.bukkit.entity.Zombie) {
+                    org.bukkit.entity.Zombie zombie = (org.bukkit.entity.Zombie) boss;
+                    zombie.setAdult();
+                    zombie.setCanPickupItems(false);
+                }
+                org.bukkit.inventory.EntityEquipment equipment = boss.getEquipment();
+                if (equipment != null) {
+                    equipment.setHelmet(new org.bukkit.inventory.ItemStack(Material.TNT));
+                    org.bukkit.inventory.ItemStack chestplate =
+                            new org.bukkit.inventory.ItemStack(Material.LEATHER_CHESTPLATE);
+                    org.bukkit.inventory.meta.LeatherArmorMeta chestMeta =
+                            (org.bukkit.inventory.meta.LeatherArmorMeta) chestplate.getItemMeta();
+                    chestMeta.setColor(org.bukkit.Color.RED);
+                    chestMeta.setDisplayName(ChatColor.RED + "TNT Core");
+                    chestplate.setItemMeta(chestMeta);
+                    equipment.setChestplate(chestplate);
+                    equipment.setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.NETHERITE_AXE));
+                    equipment.setHelmetDropChance(0.0F);
+                    equipment.setChestplateDropChance(0.0F);
+                    equipment.setItemInMainHandDropChance(0.0F);
+                }
+                org.bukkit.attribute.AttributeInstance armor = boss.getAttribute(
+                        org.bukkit.attribute.Attribute.ARMOR);
+                if (armor != null) {
+                    armor.setBaseValue(12.0);
+                }
+                org.bukkit.attribute.AttributeInstance toughness = boss.getAttribute(
+                        org.bukkit.attribute.Attribute.ARMOR_TOUGHNESS);
+                if (toughness != null) {
+                    toughness.setBaseValue(8.0);
+                }
+            } else {
+                addBossEffect(boss, org.bukkit.potion.PotionEffectType.HEALTH_BOOST, 4);
             }
             boss.setHealth(boss.getMaxHealth());
             world.strikeLightningEffect(spot);
             bosses.add(boss);
             boss.addScoreboardTag(BOSS_TAG);
             lastBossHealth.put(boss.getUniqueId(), boss.getHealth());
+            if (customBoss) {
+                boss.addScoreboardTag(CUSTOM_BOSS_TAG);
+                bossBars.put(boss.getUniqueId(), new BossHud());
+            }
         }
         new org.bukkit.scheduler.BukkitRunnable() {
             private final java.util.Random random = new java.util.Random();
@@ -720,6 +797,8 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                 for (org.bukkit.entity.LivingEntity boss : bosses) {
                     if (boss.isDead() || !boss.isValid()) {
                         lastBossHealth.remove(boss.getUniqueId());
+                        removeBossBar(boss.getUniqueId());
+                        bossAnimations.remove(boss.getUniqueId());
                         continue;
                     }
                     Double previous = lastBossHealth.get(boss.getUniqueId());
@@ -736,13 +815,19 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                             ((org.bukkit.entity.Creature) boss).setTarget(null);
                         }
                     }
-                    if (boss.getType() == EntityType.GIANT) {
+                    boolean customBoss = isCustomBoss(boss);
+                    if (customBoss) {
                         for (int h = 0; h <= 12; h += 2) {
                             for (int k = 0; k < 8; k++) {
                                 double a = Math.PI * 2.0 * k / 8 + tick * 0.15 + h * 0.4;
-                                Location p = base.clone().add(Math.cos(a) * 2.2, h, Math.sin(a) * 2.2);
-                                base.getWorld().spawnParticle(Particle.DUST, p, 1, 0, 0, 0, 0, new Particle.DustOptions(org.bukkit.Color.RED, 1.0F));
+                                Location p = base.clone().add(Math.cos(a) * 4.5, h, Math.sin(a) * 4.5);
+                                base.getWorld().spawnParticle(Particle.DUST, p, 1, 0, 0, 0, 0,
+                                        new Particle.DustOptions(org.bukkit.Color.RED, 1.0F));
                             }
+                        }
+                        if (tick % 20 == 0) {
+                            base.getWorld().spawnParticle(Particle.FLAME, base.clone().add(0, 5.0, 0),
+                                    30, 1.5, 2.5, 1.5, 0.02);
                         }
                     }
                     org.bukkit.entity.Player target = null;
@@ -754,25 +839,35 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                             target = player;
                         }
                     }
-                    if (target != null && boss.getType() == EntityType.GIANT) {
+                    if (target != null && customBoss) {
                         org.bukkit.util.Vector dir = target.getLocation().toVector().subtract(base.toVector());
                         dir.setY(0);
-                        if (dir.lengthSquared() > 16.0) {
+                        double distanceSquared = dir.lengthSquared();
+                        if (distanceSquared > 49.0) {
                             dir.normalize().multiply(0.35);
                             org.bukkit.util.Vector velocity = boss.getVelocity();
                             velocity.setX(dir.getX());
                             velocity.setZ(dir.getZ());
-                            if (boss.isOnGround() && boss.getLocation().add(dir.clone().multiply(4)).getBlock()
+                            if (boss.isOnGround() && boss.getLocation().add(dir.clone().multiply(2)).getBlock()
                                     .getType().isSolid()) {
                                 velocity.setY(0.6);
                             }
                             boss.setVelocity(velocity);
                         }
-                        if (tick % 20 == 0 && target.getLocation().distanceSquared(base) < 36.0) {
-                            target.damage(8.0, boss);
+                        if (!bossAnimations.containsKey(boss.getUniqueId())) {
+                            double targetDistance = target.getLocation().distanceSquared(base);
+                            if (tick % 200 == 0 && targetDistance < 400.0) {
+                                startBossAnimation(boss, target, BossAttack.ROAR);
+                            } else if (tick % 120 == 0 && targetDistance > 169.0) {
+                                startBossAnimation(boss, target, BossAttack.BLAST);
+                            } else if (tick % 20 == 0 && targetDistance < 81.0) {
+                                startBossAnimation(boss, target, BossAttack.MELEE);
+                            }
                         }
                     }
-                    if (tick % 40 == 0) {
+                    advanceBossAnimation(boss);
+                    updateBossBar(boss);
+                    if (!customBoss && tick % 40 == 0) {
                         for (int n = 0; n < 2; n++) {
                             Location spot = base.clone().add((random.nextDouble() - 0.5) * 16.0,
                                     random.nextDouble() * 2.0, (random.nextDouble() - 0.5) * 16.0);
@@ -792,18 +887,287 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         boss.addPotionEffect(new org.bukkit.potion.PotionEffect(type, Integer.MAX_VALUE, level, true, false));
     }
 
+    private static final double BOSS_SCALE = 6.0;
     private static final String BOSS_TAG = "customtnt_boss";
+    private static final String CUSTOM_BOSS_TAG = "customtnt_overlord";
     private final java.util.Map<java.util.UUID, Double> lastBossHealth = new java.util.HashMap<>();
     private final java.util.Set<java.util.UUID> playerHit = new java.util.HashSet<>();
+    private final java.util.Map<java.util.UUID, BossHud> bossBars = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, BossAnimation> bossAnimations = new java.util.HashMap<>();
+
+    private enum BossAttack {
+        MELEE("WINDING UP"),
+        BLAST("CHARGING BLAST"),
+        ROAR("ROARING");
+
+        private final String barLabel;
+
+        BossAttack(String barLabel) {
+            this.barLabel = barLabel;
+        }
+    }
+
+    private static final class BossAnimation {
+        private final BossAttack attack;
+        private final UUID targetId;
+        private int frame;
+
+        private BossAnimation(BossAttack attack, UUID targetId) {
+            this.attack = attack;
+            this.targetId = targetId;
+        }
+    }
+
+    private void startBossAnimation(org.bukkit.entity.LivingEntity boss, org.bukkit.entity.Player target,
+            BossAttack attack) {
+        bossAnimations.put(boss.getUniqueId(), new BossAnimation(attack, target.getUniqueId()));
+    }
+
+    private void advanceBossAnimation(org.bukkit.entity.LivingEntity boss) {
+        BossAnimation animation = bossAnimations.get(boss.getUniqueId());
+        if (animation == null) {
+            return;
+        }
+        Location base = boss.getLocation();
+        org.bukkit.entity.Player target = Bukkit.getPlayer(animation.targetId);
+        switch (animation.attack) {
+            case MELEE:
+                if (animation.frame == 0) {
+                    base.getWorld().playSound(base, Sound.ENTITY_ZOMBIE_AMBIENT, 1.6F, 0.55F);
+                }
+                if (target != null && target.isValid() && target.getWorld().equals(boss.getWorld())) {
+                    spawnBossSlash(base, target.getLocation());
+                }
+                if (animation.frame == 3 && target != null && target.isValid()
+                        && target.getWorld().equals(boss.getWorld())
+                        && target.getLocation().distanceSquared(base) < 100.0) {
+                    target.damage(12.0, boss);
+                    Vector knockback = target.getLocation().toVector().subtract(base.toVector())
+                            .setY(0).normalize().multiply(0.65);
+                    knockback.setY(0.35);
+                    target.setVelocity(knockback);
+                    base.getWorld().playSound(base, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1.8F, 0.5F);
+                    base.getWorld().spawnParticle(Particle.CRIT, target.getLocation().add(0, 1, 0),
+                            12, 0.3, 0.4, 0.3, 0.15);
+                }
+                if (++animation.frame >= 6) {
+                    bossAnimations.remove(boss.getUniqueId());
+                }
+                break;
+            case BLAST:
+                if (animation.frame == 0) {
+                    base.getWorld().playSound(base, Sound.ENTITY_WITHER_AMBIENT, 1.5F, 0.65F);
+                }
+                spawnBossCharge(base, animation.frame);
+                if (animation.frame == 7 && target != null && target.isValid()
+                        && target.getWorld().equals(boss.getWorld())) {
+                    Vector shot = target.getEyeLocation().toVector()
+                            .subtract(base.clone().add(0, 9.0, 0).toVector()).normalize().multiply(1.1);
+                    boss.launchProjectile(org.bukkit.entity.WitherSkull.class, shot);
+                    base.getWorld().playSound(base, Sound.ENTITY_WITHER_SHOOT, 2.0F, 0.7F);
+                    base.getWorld().spawnParticle(Particle.FLAME, base.clone().add(0, 9.0, 0),
+                            30, 0.8, 0.8, 0.8, 0.04);
+                }
+                if (++animation.frame >= 10) {
+                    bossAnimations.remove(boss.getUniqueId());
+                }
+                break;
+            case ROAR:
+                if (animation.frame == 0) {
+                    base.getWorld().playSound(base, Sound.ENTITY_WITHER_AMBIENT, 2.0F, 0.5F);
+                    base.getWorld().playSound(base, Sound.ENTITY_ZOMBIE_AMBIENT, 2.0F, 0.45F);
+                }
+                if (animation.frame < 10 && animation.frame % 2 == 0) {
+                    spawnBossShockwave(base, 3.0 + animation.frame * 1.6);
+                    base.getWorld().spawnParticle(Particle.CLOUD, base.clone().add(0, 6.0, 0),
+                            30, 1.5, 2.0, 1.5, 0.02);
+                }
+                if (animation.frame == 10) {
+                    base.getWorld().playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 2.0F, 0.6F);
+                    base.getWorld().spawnParticle(Particle.EXPLOSION, base, 8, 4.0, 0.5, 4.0, 0.0);
+                    for (org.bukkit.entity.Player nearby : base.getWorld().getPlayers()) {
+                        if (nearby.getGameMode() == org.bukkit.GameMode.SPECTATOR
+                                || nearby.getLocation().distanceSquared(base) > 324.0) {
+                            continue;
+                        }
+                        nearby.damage(14.0, boss);
+                        Vector knockback = nearby.getLocation().toVector().subtract(base.toVector())
+                                .setY(0).normalize().multiply(0.9);
+                        knockback.setY(0.8);
+                        nearby.setVelocity(knockback);
+                    }
+                }
+                if (++animation.frame >= 14) {
+                    bossAnimations.remove(boss.getUniqueId());
+                }
+                break;
+        }
+    }
+
+    private void spawnBossSlash(Location base, Location target) {
+        Vector direction = target.toVector().subtract(base.toVector()).setY(0);
+        if (direction.lengthSquared() < 0.001) {
+            return;
+        }
+        direction.normalize();
+        Vector side = new Vector(-direction.getZ(), 0, direction.getX());
+        Location center = base.clone().add(direction.multiply(4.0)).add(0, 5.0, 0);
+        for (int i = -4; i <= 4; i++) {
+            Location point = center.clone().add(side.clone().multiply(i * 0.9));
+            base.getWorld().spawnParticle(Particle.SWEEP_ATTACK, point, 1, 0, 0, 0, 0);
+            base.getWorld().spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0,
+                    new org.bukkit.Particle.DustOptions(org.bukkit.Color.RED, 1.5F));
+        }
+    }
+
+    private void spawnBossCharge(Location base, int frame) {
+        double radius = 2.0 + frame * 0.4;
+        for (int i = 0; i < 10; i++) {
+            double angle = Math.PI * 2.0 * i / 10.0 + frame * 0.45;
+            Location point = base.clone().add(Math.cos(angle) * radius, 8.0 + frame * 0.2,
+                    Math.sin(angle) * radius);
+            base.getWorld().spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0,
+                    new org.bukkit.Particle.DustOptions(org.bukkit.Color.RED, 1.4F));
+            if (i % 2 == 0) {
+                base.getWorld().spawnParticle(Particle.FLAME, point, 1, 0, 0, 0, 0.01);
+            }
+        }
+    }
+
+    private void spawnBossShockwave(Location base, double radius) {
+        for (int i = 0; i < 32; i++) {
+            double angle = Math.PI * 2.0 * i / 32.0;
+            Location point = base.clone().add(Math.cos(angle) * radius, 0.15,
+                    Math.sin(angle) * radius);
+            base.getWorld().spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0,
+                    new org.bukkit.Particle.DustOptions(org.bukkit.Color.RED, 1.8F));
+            if (i % 4 == 0) {
+                base.getWorld().spawnParticle(Particle.FLAME, point, 1, 0, 0, 0, 0.01);
+            }
+        }
+    }
+
+    private boolean isCustomBoss(org.bukkit.entity.Entity entity) {
+        return entity.getScoreboardTags().contains(CUSTOM_BOSS_TAG);
+    }
+
+    // The title is built only from plain block glyphs and text colours (red, black/gray palette), so the
+    // TNT frame still shows when a client has not applied the resource pack. The pack additionally restyles
+    // the RED boss bar sprites.
+    private static final net.kyori.adventure.text.Component BOSS_BAR_TITLE = net.kyori.adventure.text.Component
+            .text("\u2591\u2592\u2593", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY)
+            .append(net.kyori.adventure.text.Component.text("\u2588\u25E3 ",
+                    net.kyori.adventure.text.format.NamedTextColor.DARK_RED))
+            .append(net.kyori.adventure.text.Component.text("\u2590\u2588",
+                    net.kyori.adventure.text.format.NamedTextColor.RED))
+            .append(net.kyori.adventure.text.Component.text(" TNT ",
+                    net.kyori.adventure.text.format.NamedTextColor.WHITE))
+            .append(net.kyori.adventure.text.Component.text("\u2588\u258C",
+                    net.kyori.adventure.text.format.NamedTextColor.RED))
+            .append(net.kyori.adventure.text.Component.text(" \u25E2\u2588",
+                    net.kyori.adventure.text.format.NamedTextColor.DARK_RED))
+            .append(net.kyori.adventure.text.Component.text("\u2593\u2592\u2591",
+                    net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY));
+
+    private static final class BossHud {
+        private final net.kyori.adventure.bossbar.BossBar bar = net.kyori.adventure.bossbar.BossBar.bossBar(
+                BOSS_BAR_TITLE, 1.0F, net.kyori.adventure.bossbar.BossBar.Color.RED,
+                net.kyori.adventure.bossbar.BossBar.Overlay.PROGRESS);
+        private final java.util.Set<org.bukkit.entity.Player> viewers = new java.util.HashSet<>();
+        private String lastStatus = "";
+        private int statusAge;
+
+        private void clear() {
+            for (org.bukkit.entity.Player player : viewers) {
+                player.hideBossBar(bar);
+            }
+            viewers.clear();
+        }
+    }
+
+    private void updateBossBar(org.bukkit.entity.LivingEntity boss) {
+        BossHud hud = bossBars.get(boss.getUniqueId());
+        if (hud == null) {
+            return;
+        }
+        double maxHealth = boss.getMaxHealth();
+        double health = Math.max(0.0, boss.getHealth());
+        hud.bar.progress((float) Math.max(0.0, Math.min(1.0, health / Math.max(1.0, maxHealth))));
+        BossAnimation animation = bossAnimations.get(boss.getUniqueId());
+        String attackState = animation != null ? ChatColor.YELLOW + animation.attack.barLabel
+                : health <= maxHealth * 0.3 ? ChatColor.DARK_RED + "ENRAGED" : ChatColor.GOLD + "FUSE LIT";
+        String status = ChatColor.DARK_RED + "TNT-ZOMBIE OVERLORD " + ChatColor.DARK_GRAY + "| " + attackState
+                + ChatColor.DARK_GRAY + " | " + ChatColor.RED + (int) Math.ceil(health) + "/"
+                + (int) Math.ceil(maxHealth) + " HP";
+        boolean refresh = !status.equals(hud.lastStatus) || ++hud.statusAge >= 10;
+        if (refresh) {
+            hud.lastStatus = status;
+            hud.statusAge = 0;
+        }
+        for (org.bukkit.entity.Player player : boss.getWorld().getPlayers()) {
+            if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR
+                    && player.getLocation().distanceSquared(boss.getLocation()) <= 64.0 * 64.0) {
+                if (hud.viewers.add(player)) {
+                    player.showBossBar(hud.bar);
+                }
+                if (refresh) {
+                    player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                            .legacySection().deserialize(status));
+                }
+            } else if (hud.viewers.remove(player)) {
+                player.hideBossBar(hud.bar);
+            }
+        }
+        hud.viewers.removeIf(player -> {
+            if (player.isOnline() && player.getWorld().equals(boss.getWorld())) {
+                return false;
+            }
+            player.hideBossBar(hud.bar);
+            return true;
+        });
+    }
+
+    private void removeBossBar(java.util.UUID bossId) {
+        BossHud hud = bossBars.remove(bossId);
+        if (hud != null) {
+            hud.clear();
+        }
+    }
 
     private boolean isBoss(org.bukkit.entity.Entity entity) {
         return entity.getScoreboardTags().contains(BOSS_TAG);
+    }
+
+    @EventHandler
+    public void onBossDeath(org.bukkit.event.entity.EntityDeathEvent event) {
+        if (!isBoss(event.getEntity())) {
+            return;
+        }
+        lastBossHealth.remove(event.getEntity().getUniqueId());
+        playerHit.remove(event.getEntity().getUniqueId());
+        bossAnimations.remove(event.getEntity().getUniqueId());
+        if (isCustomBoss(event.getEntity())) {
+            for (org.bukkit.entity.Player player : event.getEntity().getWorld().getPlayers()) {
+                if (player.getLocation().distanceSquared(event.getEntity().getLocation()) <= 64.0 * 64.0) {
+                    player.sendMessage(ChatColor.GOLD + "The TNT Overlord has been defeated!");
+                }
+            }
+        }
+        removeBossBar(event.getEntity().getUniqueId());
     }
 
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
     public void onBossDamage(org.bukkit.event.entity.EntityDamageEvent event) {
         if (!isBoss(event.getEntity())) {
             return;
+        }
+        if (isCustomBoss(event.getEntity()) && event.getEntity() instanceof org.bukkit.entity.LivingEntity) {
+            final org.bukkit.entity.LivingEntity hit = (org.bukkit.entity.LivingEntity) event.getEntity();
+            Bukkit.getScheduler().runTask(this, () -> {
+                if (hit.isValid() && !hit.isDead()) {
+                    updateBossBar(hit);
+                }
+            });
         }
         if (event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent) {
             org.bukkit.entity.Entity damager = ((org.bukkit.event.entity.EntityDamageByEntityEvent) event).getDamager();
@@ -918,7 +1282,7 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    private static final int MINING_STEPS = 50;
+    private static final int MINING_STEPS = 12;
     private static final long MINING_STEP_TICKS = 4L;
 
     private void startMiningTunnel(Location origin, Player player) {
@@ -1031,6 +1395,17 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
     }
 
     private void startFuseEffects(final TNTPrimed tnt, final TNTType type) {
+        // Vanilla-style sizzle: smoke every tick above the fuse.
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (tnt.isDead() || !tnt.isValid()) {
+                    cancel();
+                    return;
+                }
+                tnt.getWorld().spawnParticle(Particle.SMOKE, tnt.getLocation().add(0.0, 1.0, 0.0), 1, 0.0, 0.0, 0.0, 0.0);
+            }
+        }.runTaskTimer(this, 0L, 1L);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -1042,6 +1417,8 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
                         : type == TNTType.SLIME ? Particle.ITEM_SLIME
                         : type == TNTType.BLACK_HOLE ? Particle.PORTAL
                         : type == TNTType.MINING ? Particle.CRIT : Particle.LARGE_SMOKE;
+                tnt.getWorld().spawnParticle(Particle.ENTITY_EFFECT, tnt.getLocation().add(0.0, 0.6, 0.0),
+                        4, 0.25, 0.3, 0.25, org.bukkit.Color.fromRGB(type.color));
                 tnt.getWorld().spawnParticle(particle, tnt.getLocation().add(0.0, 0.35, 0.0),
                         3, 0.12, 0.12, 0.12, 0.01, particleData(particle));
                 tnt.getWorld().spawnParticle(Particle.BLOCK, tnt.getLocation().add(0.0, 0.25, 0.0),
@@ -1347,6 +1724,10 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             return null;
         }
         ItemMeta meta = item.getItemMeta();
+        String stored = meta.getPersistentDataContainer().get(ITEM_TYPE_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+        if (stored != null) {
+            return TNTType.fromKey(stored);
+        }
         if (!meta.hasLore()) {
             return null;
         }
@@ -1393,6 +1774,9 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
         ItemStack item = new ItemStack(type.icon, amount);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(type.displayName);
+        meta.getPersistentDataContainer().set(ITEM_TYPE_KEY, org.bukkit.persistence.PersistentDataType.STRING, type.key);
+        meta.setItemModel(new org.bukkit.NamespacedKey("lston",
+                type.key.replace("-tnt", "").replace("x-ray", "xray").replace('-', '_') + "_tnt"));
         List<String> lore = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
         for (String word : type.description.split(" ")) {
@@ -1505,67 +1889,74 @@ public final class CustomTNTPlugin extends JavaPlugin implements Listener {
             return Collections.singletonList(target);
         }
 
-        if (targetName.equalsIgnoreCase("@a")) {
-            return new ArrayList<>(getServer().getOnlinePlayers());
-        }
-        if (targetName.equalsIgnoreCase("@s")) {
-            if (sender instanceof Player) {
-                return Collections.singletonList((Player) sender);
-            }
-            throw new IllegalArgumentException("@s can only be used by a player.");
-        }
-        if (targetName.equalsIgnoreCase("@p")) {
-            if (!(sender instanceof Player)) {
-                throw new IllegalArgumentException("@p can only be used by a player.");
-            }
-            Player nearest = null;
-            double nearestDistance = Double.MAX_VALUE;
-            Location origin = ((Player) sender).getLocation();
-            for (Player player : getServer().getOnlinePlayers()) {
-                if (!player.getWorld().equals(origin.getWorld())) {
-                    continue;
-                }
-                double distance = player.getLocation().distanceSquared(origin);
-                if (distance < nearestDistance) {
-                    nearest = player;
-                    nearestDistance = distance;
+        List<Player> players = new ArrayList<>();
+        try {
+            for (Entity entity : Bukkit.selectEntities(sender, targetName)) {
+                if (entity instanceof Player) {
+                    players.add((Player) entity);
                 }
             }
-            return nearest == null ? Collections.<Player>emptyList() : Collections.singletonList(nearest);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid target selector: " + exception.getMessage(), exception);
         }
-        throw new IllegalArgumentException("Supported player selectors are @a, @s, and @p.");
+        return players;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>();
+        if (command.getName().equalsIgnoreCase("customtnt")) {
+            if (args.length == 1) {
+                suggestions.addAll(Arrays.asList("@a", "@e", "@n", "@p", "@r", "@s", "@e[type=player]"));
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    suggestions.add(player.getName());
+                }
+            } else if (args.length == 2) {
+                for (TNTType type : TNTType.values()) {
+                    suggestions.add(type.key);
+                }
+                suggestions.add("all");
+            }
+        }
+        String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
+        suggestions.removeIf(suggestion -> !suggestion.toLowerCase(java.util.Locale.ROOT).startsWith(prefix));
+        return suggestions;
     }
 
     private void sendUsage(CommandSender sender, String label) {
         sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label
-                + " <player|@a|@s|@p> <nuke|mining|fire|slime|x-ray|rdm|mob|boss|poop|firework|sun|black-hole|anti-tnt|all> [amount]");
+                + " <player|selector> <nuke|mining|fire|slime|x-ray|rdm|mob|boss|poop|firework|sun|black-hole|anti-tnt|all> [amount]");
         sender.sendMessage(ChatColor.YELLOW + "       /rldcustomtnt");
     }
 
     private enum TNTType {
-        NUKE("nuke", ChatColor.DARK_RED + "Nuke TNT", Material.COMMAND_BLOCK_MINECART, Material.REDSTONE_BLOCK, "A huge, devastating blast."),
-        MINING("mining", ChatColor.GRAY + "Mining TNT", Material.COMMAND_BLOCK_MINECART, Material.GOLD_BLOCK, "Digs a mining tunnel where placed."),
-        FIRE("fire", ChatColor.RED + "Fire TNT", Material.COMMAND_BLOCK_MINECART, Material.NETHERRACK, "Sets the area ablaze."),
-        SLIME("slime", ChatColor.GREEN + "Slime TNT", Material.COMMAND_BLOCK_MINECART, Material.SLIME_BLOCK, "Covers the area in bouncy slime."),
-        X_RAY("x-ray", ChatColor.BLUE + "X-Ray TNT", Material.COMMAND_BLOCK_MINECART, Material.DIAMOND_BLOCK, "Reveals ores in a wide area."),
-        FIREWORK("firework", ChatColor.LIGHT_PURPLE + "Firework TNT", Material.COMMAND_BLOCK_MINECART, Material.MAGENTA_WOOL, "Bursts into a firework show."),
-        POOP("poop", ChatColor.DARK_GRAY + "Poop TNT", Material.COMMAND_BLOCK_MINECART, Material.SOUL_SAND, "Leaves a messy surprise."),
-        MOB("mob", ChatColor.DARK_GREEN + "Mob TNT", Material.COMMAND_BLOCK_MINECART, Material.MOSSY_COBBLESTONE, "Summons mobs when it blows."),
-        BOSS("boss", ChatColor.DARK_RED + "Boss TNT", Material.COMMAND_BLOCK_MINECART, Material.BEDROCK, "Calls in a powerful boss."),
-        RDM("rdm", ChatColor.LIGHT_PURPLE + "rdmTNT", Material.COMMAND_BLOCK_MINECART, Material.PURPUR_BLOCK, "A random explosion every time."),
-        SUN("sun", ChatColor.GOLD + "Sun TNT", Material.COMMAND_BLOCK_MINECART, Material.SEA_LANTERN, "Burns bright like a small sun."),
+        NUKE("nuke", ChatColor.DARK_RED + "Nuke TNT", Material.COMMAND_BLOCK_MINECART, Material.REDSTONE_BLOCK, "A huge, devastating blast.", 0xD62822, 60),
+        MINING("mining", ChatColor.GRAY + "Mining TNT", Material.COMMAND_BLOCK_MINECART, Material.GOLD_BLOCK, "Digs a mining tunnel where placed.", 0xA9A9A9, 0),
+        FIRE("fire", ChatColor.RED + "Fire TNT", Material.COMMAND_BLOCK_MINECART, Material.NETHERRACK, "Sets the area ablaze.", 0xEE6618, 8),
+        SLIME("slime", ChatColor.GREEN + "Slime TNT", Material.COMMAND_BLOCK_MINECART, Material.SLIME_BLOCK, "Covers the area in bouncy slime.", 0x4ABC2B, 4),
+        X_RAY("x-ray", ChatColor.BLUE + "X-Ray TNT", Material.COMMAND_BLOCK_MINECART, Material.DIAMOND_BLOCK, "Reveals ores in a wide area.", 0x2870FF, 5),
+        FIREWORK("firework", ChatColor.LIGHT_PURPLE + "Firework TNT", Material.COMMAND_BLOCK_MINECART, Material.MAGENTA_WOOL, "Bursts into a firework show.", 0xEB283C, 5),
+        POOP("poop", ChatColor.DARK_GRAY + "Poop TNT", Material.COMMAND_BLOCK_MINECART, Material.SOUL_SAND, "Leaves a messy surprise.", 0x654321, 4),
+        MOB("mob", ChatColor.DARK_GREEN + "Mob TNT", Material.COMMAND_BLOCK_MINECART, Material.MOSSY_COBBLESTONE, "Summons mobs when it blows.", 0x408C3C, 8),
+        BOSS("boss", ChatColor.DARK_RED + "Boss TNT", Material.COMMAND_BLOCK_MINECART, Material.BEDROCK, "Calls in a powerful boss.", 0x780A0A, 30),
+        RDM("rdm", ChatColor.LIGHT_PURPLE + "rdmTNT", Material.COMMAND_BLOCK_MINECART, Material.PURPUR_BLOCK, "A random explosion every time.", 0xE246C8, 6),
+        SUN("sun", ChatColor.GOLD + "Sun TNT", Material.COMMAND_BLOCK_MINECART, Material.SEA_LANTERN, "Burns bright like a small sun.", 0xFFC414, 10),
         BLACK_HOLE("black-hole", ChatColor.DARK_PURPLE + "Black Hole TNT",
-                Material.COMMAND_BLOCK_MINECART, Material.OBSIDIAN, "Pulls everything into a black hole."),
+                Material.COMMAND_BLOCK_MINECART, Material.OBSIDIAN, "Pulls everything into a black hole.", 0x3A2454, 20),
         ANTI("anti-tnt", ChatColor.AQUA + "Anti-TNT", Material.COMMAND_BLOCK_MINECART, Material.QUARTZ_BLOCK,
-                "Undoes damage and changes from other custom TNT.");
+                "Undoes damage and changes from other custom TNT.", 0xA5DEFF, 3);
 
         private final String key;
         private final String displayName;
         private final Material icon;
         private final Material effectBlock;
         private final String description;
+        private final int color;
+        private final int defaultCooldownSeconds;
 
-        TNTType(String key, String displayName, Material icon, Material effectBlock, String description) {
+        TNTType(String key, String displayName, Material icon, Material effectBlock, String description, int color, int defaultCooldownSeconds) {
+            this.color = color;
+            this.defaultCooldownSeconds = defaultCooldownSeconds;
             this.key = key;
             this.displayName = displayName;
             this.icon = icon;

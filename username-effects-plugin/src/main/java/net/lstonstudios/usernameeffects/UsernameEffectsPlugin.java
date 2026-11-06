@@ -3,6 +3,7 @@ package net.lstonstudios.usernameeffects;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -15,6 +16,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -22,6 +26,9 @@ import org.bukkit.scoreboard.Team;
 public final class UsernameEffectsPlugin extends JavaPlugin implements Listener {
 
     private final Map<UUID, NameEffect> effects = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastMove = new ConcurrentHashMap<>();
+    private final Set<UUID> afk = ConcurrentHashMap.newKeySet();
+    private static final String AFK_PREFIX = ChatColor.GRAY + "AFK" + ChatColor.RESET + " ";
 
     @Override
     public void onEnable() {
@@ -29,6 +36,16 @@ public final class UsernameEffectsPlugin extends JavaPlugin implements Listener 
         loadEffects();
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("nameeffect").setExecutor(this);
+        long limitMs = getConfig().getLong("afk-minutes", 5) * 60_000L;
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            long now = System.currentTimeMillis();
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                Long last = lastMove.putIfAbsent(player.getUniqueId(), now);
+                if (last != null && now - last >= limitMs) {
+                    goAfk(player);
+                }
+            }
+        }, 200L, 200L);
     }
 
     private void loadEffects() {
@@ -58,13 +75,53 @@ public final class UsernameEffectsPlugin extends JavaPlugin implements Listener 
         Bukkit.getScheduler().runTask(this, () -> applyEffect(player, effects.get(player.getUniqueId())));
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onKick(PlayerKickEvent event) {
+        if (event.getCause() != PlayerKickEvent.Cause.TIMEOUT) {
+            return;
+        }
+        event.setCancelled(true);
+        goAfk(event.getPlayer());
+    }
+
+    private void goAfk(Player player) {
+        if (afk.add(player.getUniqueId())) {
+            player.sendMessage(ChatColor.YELLOW + "You Have Gone AFK.");
+            applyEffect(player, effects.get(player.getUniqueId()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        if (!event.hasChangedPosition()) {
+            return;
+        }
+        lastMove.put(player.getUniqueId(), System.currentTimeMillis());
+        if (!afk.contains(player.getUniqueId())) {
+            return;
+        }
+        afk.remove(player.getUniqueId());
+        applyEffect(player, effects.get(player.getUniqueId()));
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        afk.remove(event.getPlayer().getUniqueId());
+        lastMove.remove(event.getPlayer().getUniqueId());
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onChat(AsyncPlayerChatEvent event) {
         NameEffect effect = effects.get(event.getPlayer().getUniqueId());
-        if (effect == null) {
+        boolean isAfk = afk.contains(event.getPlayer().getUniqueId());
+        if (effect == null && !isAfk) {
             return;
         }
-        String prefix = effect.prefix.isEmpty() ? "" : effect.prefix + " ";
+        if (effect == null) {
+            effect = new NameEffect("", "");
+        }
+        String prefix = (isAfk ? AFK_PREFIX : "") + (effect.prefix.isEmpty() ? "" : effect.prefix + " ");
         String suffix = effect.suffix.isEmpty() ? "" : " " + effect.suffix;
         event.setFormat(escapePercent(prefix) + "%1$s" + escapePercent(suffix) + ChatColor.RESET + ": %2$s");
     }
@@ -77,7 +134,8 @@ public final class UsernameEffectsPlugin extends JavaPlugin implements Listener 
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         String teamName = "ue" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
         Team team = scoreboard.getTeam(teamName);
-        if (effect == null) {
+        boolean isAfk = afk.contains(player.getUniqueId());
+        if (effect == null && !isAfk) {
             if (team != null) {
                 team.removePlayer(player);
                 team.unregister();
@@ -85,9 +143,16 @@ public final class UsernameEffectsPlugin extends JavaPlugin implements Listener 
             return true;
         }
 
+        if (effect == null) {
+            effect = new NameEffect("", "");
+        }
         String prefix = effect.prefix.isEmpty() ? "" : effect.prefix + " ";
         String suffix = effect.suffix.isEmpty() ? "" : " " + effect.suffix;
         if (prefix.length() > 16 || suffix.length() > 16) {
+            return false;
+        }
+        prefix = (isAfk ? AFK_PREFIX : "") + prefix;
+        if (prefix.length() > 64) {
             return false;
         }
         if (team == null) {
